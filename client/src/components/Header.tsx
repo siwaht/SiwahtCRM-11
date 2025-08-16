@@ -206,7 +206,7 @@ export default function Header() {
                   <User className="h-4 w-4 text-white" />
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-white" data-testid="text-username">{user?.name}</p>
+                  <p className="text-sm font-medium text-white" data-testid="text-username">{user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}</p>
                   <p className="text-xs text-slate-400 capitalize" data-testid="text-userrole">{user?.role}</p>
                 </div>
               </div>
@@ -314,8 +314,8 @@ export default function Header() {
 
       {/* User Profile Modal */}
       <Dialog open={showProfile} onOpenChange={setShowProfile}>
-        <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader className="flex-shrink-0">
             <DialogTitle className="flex items-center gap-3">
               <UserCircle className="h-6 w-6 text-indigo-400" />
               User Profile
@@ -325,7 +325,7 @@ export default function Header() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-6 overflow-y-auto flex-1 pr-2 scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600 hover:scrollbar-thumb-slate-500">
             {/* Profile Header */}
             <Card className="bg-slate-800/30 border-slate-700/50">
               <CardHeader className="pb-4">
@@ -336,7 +336,7 @@ export default function Header() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h2 className="text-xl font-semibold text-white">
-                        {user?.name || 'Unknown User'}
+                        {user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Unknown User'}
                       </h2>
                       <Badge className={`${getRoleColor(user?.role || '')} border text-sm`}>
                         {user?.role || 'User'}
@@ -363,7 +363,7 @@ export default function Header() {
                   <div>
                     <Label className="text-slate-300 mb-2 block">Full Name</Label>
                     <Input 
-                      value={user?.name || ''} 
+                      value={user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || ''} 
                       readOnly 
                       className="bg-slate-800/50 border-slate-700 text-slate-200"
                       data-testid="input-profile-name"
