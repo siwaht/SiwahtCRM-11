@@ -17,6 +17,13 @@ export default function Header() {
     });
   };
 
+  const handleProfileClick = () => {
+    toast({
+      title: "Profile Menu",
+      description: "User profile settings and preferences coming soon!",
+    });
+  };
+
   return (
     <header className="sticky top-0 z-50 backdrop-blur-sm bg-slate-900/80 border-b border-slate-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -56,7 +63,11 @@ export default function Header() {
             
             {/* User Profile */}
             <div className="flex items-center space-x-3 bg-slate-800/30 px-3 py-2 rounded-xl">
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+              <div 
+                className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+                onClick={handleProfileClick}
+                data-testid="button-user-avatar"
+              >
                 <User className="h-4 w-4 text-white" />
               </div>
               <div className="hidden sm:block">
