@@ -297,7 +297,10 @@ export class DatabaseStorage implements IStorage {
   async createLead(insertLead: InsertLead, productIds?: number[]): Promise<Lead> {
     // Auto-assign engineer if not already assigned
     if (!insertLead.assignedEngineer) {
+      console.log('Auto-assigning engineer...');
       const engineers = await this.getAvailableEngineers();
+      console.log('Available engineers:', engineers);
+      
       if (engineers.length > 0) {
         // Get lead counts for each engineer to find the one with the least load
         const engineerLoads = await Promise.all(
@@ -312,12 +315,17 @@ export class DatabaseStorage implements IStorage {
           })
         );
         
+        console.log('Engineer loads:', engineerLoads);
+        
         // Find engineer with minimum load
         const minLoad = Math.min(...engineerLoads.map(load => load.count));
         const availableEngineer = engineerLoads.find(load => load.count === minLoad);
         
+        console.log('Selected engineer:', availableEngineer);
+        
         if (availableEngineer) {
           insertLead.assignedEngineer = availableEngineer.engineerId;
+          console.log('Assigned engineer ID:', insertLead.assignedEngineer);
         }
       }
     }
