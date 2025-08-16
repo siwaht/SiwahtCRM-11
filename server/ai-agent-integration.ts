@@ -21,8 +21,8 @@ interface McpResponse {
 
 export function setupMcpServer(httpServer: Server) {
   const wss = new WebSocketServer({ 
-    port: 5003,
-    host: '0.0.0.0'
+    server: httpServer,
+    path: '/mcp'
   });
 
   const connectedClients = new Set();
@@ -234,7 +234,7 @@ export function setupMcpServer(httpServer: Server) {
     }));
   });
 
-  console.log('MCP WebSocket server started on port 5003');
+  console.log('MCP WebSocket server started on /mcp path');
   
   // Return server info for monitoring
   return {
