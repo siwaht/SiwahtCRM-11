@@ -18,11 +18,13 @@ import {
   ArrowUpDown
 } from "lucide-react";
 import LeadForm from "./LeadForm";
+import LeadDetails from "./LeadDetails";
 import type { Lead } from "@shared/schema";
 
 export default function LeadsTable() {
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [viewingLead, setViewingLead] = useState<Lead | null>(null);
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
@@ -81,6 +83,10 @@ export default function LeadsTable() {
   const handleEdit = (lead: Lead) => {
     setEditingLead(lead);
     setShowLeadForm(true);
+  };
+
+  const handleView = (lead: Lead) => {
+    setViewingLead(lead);
   };
 
   const handleDelete = (id: number) => {
@@ -299,6 +305,7 @@ export default function LeadsTable() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => handleView(lead)}
                         className="p-1 sm:p-2 hover:bg-slate-700/50 rounded-lg"
                         data-testid={`button-view-${lead.id}`}
                       >
@@ -359,6 +366,14 @@ export default function LeadsTable() {
             setShowLeadForm(false);
             setEditingLead(null);
           }}
+        />
+      )}
+
+      {/* Lead Details Modal */}
+      {viewingLead && (
+        <LeadDetails
+          lead={viewingLead}
+          onClose={() => setViewingLead(null)}
         />
       )}
     </div>
