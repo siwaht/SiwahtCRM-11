@@ -23,17 +23,30 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 export async function login(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
+    console.log('Login attempt with email:', email);
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const user = await storage.getUserByEmail(email);
+    // Try to find user by email first, then by username
+    let user = await storage.getUserByEmail(email);
+    if (!user) {
+      user = await storage.getUserByUsername(email); // Allow login with username
+      console.log('User lookup by username:', user ? 'found' : 'not found');
+    } else {
+      console.log('User lookup by email:', user ? 'found' : 'not found');
+    }
+
     if (!user || !user.isActive) {
+      console.log('User not found or inactive');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    console.log('User found, verifying password...');
     const isValidPassword = await verifyPassword(password, user.password);
+    console.log('Password verification result:', isValidPassword);
+    
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -41,6 +54,7 @@ export async function login(req: Request, res: Response) {
     // Store user in session
     req.session.userId = user.id;
     req.session.userRole = user.role;
+    console.log('Session created for user:', user.id);
 
     // Return user without password
     const { password: _, ...userWithoutPassword } = user;
