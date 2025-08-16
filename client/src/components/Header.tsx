@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -61,32 +61,54 @@ export default function Header() {
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'lead',
-      title: 'New Lead Assigned',
-      message: 'Michael Johnson from TechStartup Inc has been assigned to you',
-      time: '2 minutes ago',
-      read: false
-    },
-    {
-      id: 2,
-      type: 'webhook',
-      title: 'Webhook Test Successful',
-      message: 'n8n webhook test completed successfully',
-      time: '5 minutes ago',
-      read: false
-    },
-    {
-      id: 3,
-      type: 'system',
-      title: 'Database Backup Complete',
-      message: 'Automatic backup completed successfully',
-      time: '1 hour ago',
-      read: false
+  // Initialize notifications from localStorage or use defaults
+  const [notifications, setNotifications] = useState(() => {
+    try {
+      const saved = localStorage.getItem('notifications');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Error loading notifications from localStorage:', error);
     }
-  ]);
+    
+    // Default notifications - only shown on first visit
+    return [
+      {
+        id: 1,
+        type: 'lead',
+        title: 'New Lead Assigned',
+        message: 'Michael Johnson from TechStartup Inc has been assigned to you',
+        time: '2 minutes ago',
+        read: false
+      },
+      {
+        id: 2,
+        type: 'webhook',
+        title: 'Webhook Test Successful',
+        message: 'n8n webhook test completed successfully',
+        time: '5 minutes ago',
+        read: false
+      },
+      {
+        id: 3,
+        type: 'system',
+        title: 'Database Backup Complete',
+        message: 'Automatic backup completed successfully',
+        time: '1 hour ago',
+        read: false
+      }
+    ];
+  });
+
+  // Save notifications to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('notifications', JSON.stringify(notifications));
+    } catch (error) {
+      console.error('Error saving notifications to localStorage:', error);
+    }
+  }, [notifications]);
 
   const handleNotifications = () => {
     setShowNotifications(true);
