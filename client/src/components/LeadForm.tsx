@@ -30,7 +30,13 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
     notes: lead?.notes || "",
     priority: lead?.priority || "medium",
     tags: lead?.tags || [],
-    followUpDate: lead?.followUpDate ? lead?.followUpDate.toISOString().split('T')[0] : "",
+    followUpDate: lead?.followUpDate ? (
+      lead.followUpDate instanceof Date 
+        ? lead.followUpDate.toISOString().split('T')[0]
+        : typeof lead.followUpDate === 'string' 
+          ? lead.followUpDate.split('T')[0]
+          : ""
+    ) : "",
   });
   
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
