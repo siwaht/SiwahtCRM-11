@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -15,7 +16,8 @@ import {
   Eye, 
   Edit, 
   Trash2,
-  ArrowUpDown
+  ArrowUpDown,
+  Settings
 } from "lucide-react";
 import LeadForm from "./LeadForm";
 import LeadDetails from "./LeadDetails";
@@ -116,6 +118,12 @@ export default function LeadsTable() {
   const getAssigneeName = (assignedTo: number | null) => {
     if (!assignedTo) return "Unassigned";
     const user = users.find((u: any) => u.id === assignedTo);
+    return user ? user.name.split(" ").map((n: string) => n[0]).join("") + "." : "Unknown";
+  };
+
+  const getEngineerName = (assignedEngineer: number | null) => {
+    if (!assignedEngineer) return "—";
+    const user = users.find((u: any) => u.id === assignedEngineer);
     return user ? user.name.split(" ").map((n: string) => n[0]).join("") + "." : "Unknown";
   };
 
@@ -258,6 +266,7 @@ export default function LeadsTable() {
                   </div>
                 </th>
                 <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider hidden lg:table-cell">Engineering Progress</th>
                 <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:table-cell">Last Contact</th>
                 <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
@@ -291,6 +300,32 @@ export default function LeadsTable() {
                       <div className="w-5 h-5 sm:w-6 sm:h-6 bg-indigo-500 rounded-full flex-shrink-0"></div>
                       <span className="text-xs sm:text-sm truncate">{getAssigneeName(lead.assignedTo)}</span>
                     </div>
+                  </td>
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 hidden lg:table-cell">
+                    {lead.assignedEngineer && lead.status === 'won' ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <Settings className="h-3 w-3 text-slate-400" />
+                          <span className="text-xs text-slate-400">{getEngineerName(lead.assignedEngineer)}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Progress 
+                            value={lead.engineeringProgress || 0} 
+                            className="w-16 h-2" 
+                            data-testid={`progress-${lead.id}`}
+                          />
+                          <span className="text-xs font-medium text-blue-400 min-w-[2rem]">
+                            {lead.engineeringProgress || 0}%
+                          </span>
+                        </div>
+                      </div>
+                    ) : lead.status === 'won' ? (
+                      <div className="text-xs text-slate-500">
+                        No engineer assigned
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500">—</div>
+                    )}
                   </td>
                   <td className="px-3 sm:px-6 py-3 sm:py-4 hidden sm:table-cell">
                     <span className="text-sm text-slate-400">
