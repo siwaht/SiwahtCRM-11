@@ -68,6 +68,11 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
 
   const { data: attachments = [], isLoading: attachmentsLoading } = useQuery<LeadAttachment[]>({
     queryKey: [`/api/leads/${lead.id}/attachments`],
+    retry: 2,
+    refetchOnWindowFocus: false,
+    onError: (error) => {
+      console.error('Attachments query error:', error);
+    }
   });
 
   const { data: storageInfo } = useQuery<{storageUsed: number; storageLimit: number; storageAvailable: number}>({
@@ -697,60 +702,57 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
           </Card>
 
           {/* File Attachments */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
               <Paperclip className="h-4 w-4 text-slate-400" />
               <h4 className="text-slate-400 text-sm font-medium">File Attachments</h4>
             </div>
             
-            {/* Attachment Display Area */}
-            <div className="bg-slate-800/50 border border-slate-700/30 rounded-lg p-4 min-h-[120px]">
+            {/* Compact Attachment Area */}
+            <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 mb-3">
               {attachmentsLoading ? (
-                <div className="flex items-center justify-center h-16">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
+                <div className="flex items-center justify-center h-12">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-500"></div>
                 </div>
               ) : attachments.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-1">
                   {attachments.map((attachment) => {
                     const formatFileSize = (bytes: number) => {
-                      if (bytes === 0) return '0 Bytes';
+                      if (bytes === 0) return '0 B';
                       const k = 1024;
-                      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                      const sizes = ['B', 'KB', 'MB', 'GB'];
                       const i = Math.floor(Math.log(bytes) / Math.log(k));
-                      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
                     };
                     
                     return (
-                      <div key={attachment.id} className="flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-600/30">
+                      <div key={attachment.id} className="flex items-center justify-between py-1 px-2 hover:bg-slate-700/20 rounded text-xs">
                         <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <FileText className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                          <div className="w-4 h-4 bg-slate-600/50 rounded flex items-center justify-center flex-shrink-0">
+                            <FileText className="h-2.5 w-2.5 text-slate-300" />
+                          </div>
                           <div className="min-w-0 flex-1">
-                            <span className="text-xs text-slate-200 truncate block">{attachment.fileName}</span>
-                            <div className="flex items-center gap-2 text-xs text-slate-500">
-                              <span>{formatFileSize(attachment.fileSize || 0)}</span>
-                              {attachment.description && (
-                                <>
-                                  <span>•</span>
-                                  <span className="truncate">{attachment.description}</span>
-                                </>
-                              )}
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-200 truncate font-medium">{attachment.fileName}</span>
+                              <span className="text-slate-500">{formatFileSize(attachment.fileSize || 0)}</span>
                             </div>
+                            {attachment.description && (
+                              <div className="text-slate-400 text-xs truncate">{attachment.description}</div>
+                            )}
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          <a
-                            href={attachment.filePath}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 text-xs px-1 py-0.5 rounded"
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                          <button
+                            onClick={() => window.open(attachment.filePath, '_blank')}
+                            className="text-blue-400 hover:text-blue-300 text-xs px-1.5 py-0.5 rounded hover:bg-blue-500/10"
                             data-testid={`link-view-attachment-${attachment.id}`}
                           >
                             View
-                          </a>
+                          </button>
                           <button
                             onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
                             disabled={deleteAttachmentMutation.isPending}
-                            className="text-red-400 hover:text-red-300 text-xs px-1 py-0.5 rounded disabled:opacity-50"
+                            className="text-red-400 hover:text-red-300 text-xs px-1 py-0.5 rounded hover:bg-red-500/10 disabled:opacity-50"
                             data-testid={`button-delete-attachment-${attachment.id}`}
                           >
                             {deleteAttachmentMutation.isPending ? '...' : '×'}
@@ -761,19 +763,19 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                   })}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-16 text-slate-500 text-sm">
+                <div className="flex items-center justify-center h-12 text-slate-500 text-xs">
                   No attachments yet.
                 </div>
               )}
             </div>
             
-            {/* Upload Controls */}
-            <div className="flex items-center gap-2">
+            {/* Compact Upload Controls */}
+            <div className="flex items-stretch gap-2">
               <Input 
                 value={fileDescription}
                 onChange={(e) => setFileDescription(e.target.value)}
                 placeholder="Optional description for the files..."
-                className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm h-9"
+                className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm h-8 flex-1"
                 data-testid="input-file-description"
               />
               <ObjectUploader
@@ -810,9 +812,14 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     }
                   }
                   
-                  // Always invalidate attachments query after upload
-                  queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+                  // Force refresh attachments - try multiple approaches
+                  await queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
                   queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+                  
+                  // Force a refetch
+                  setTimeout(() => {
+                    queryClient.refetchQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+                  }, 500);
                   
                   // Clear form after successful upload
                   setSelectedQuickAction(null);
@@ -823,9 +830,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     description: `${result.successful?.length || 0} file(s) uploaded successfully`,
                   });
                 }}
-                buttonClassName="bg-green-600 hover:bg-green-700 px-4 h-9 text-sm"
+                buttonClassName="bg-green-600 hover:bg-green-700 px-3 h-8 text-sm"
               >
-                <Upload className="h-4 w-4 mr-1" />
+                <Upload className="h-3 w-3 mr-1" />
                 Upload
               </ObjectUploader>
             </div>
