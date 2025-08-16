@@ -285,10 +285,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       
-      // Get the lead before deleting for webhook
+      // Get the lead before deleting for webhook and permission check
       const lead = await storage.getLead(id);
       if (!lead) {
         return res.status(404).json({ message: 'Lead not found' });
+      }
+      
+      // Permission check: Admin can delete any lead, others can only delete their own leads
+      if (req.user!.role !== 'admin' && lead.assignedTo !== req.user!.id) {
+        return res.status(403).json({ message: 'You can only delete leads you created' });
       }
       
       const success = await storage.deleteLead(id);
