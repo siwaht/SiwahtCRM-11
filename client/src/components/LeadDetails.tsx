@@ -278,25 +278,27 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
             <div>
               <span className="text-xs text-slate-400 block mb-1">Status:</span>
               <Badge className={`${getStatusColor(lead.status)} border text-xs`}>
-                {lead.status}
+                {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 ? 'In Development' : lead.status}
               </Badge>
             </div>
             <div>
               <span className="text-xs text-slate-400 block mb-1">Priority:</span>
               <Badge className={`${getPriorityColor(lead.priority || 'medium')} border text-xs`}>
-                {lead.priority || 'medium'}
+                {lead.priority === 'high' ? 'Hot' : lead.priority || 'medium'}
               </Badge>
             </div>
             <div>
               <span className="text-xs text-slate-400 block mb-1">Score:</span>
               <div className="flex items-center gap-1">
-                <span className="text-blue-400 font-medium">{lead.score || 35}</span>
+                <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-400/30 text-xs px-2 py-1">
+                  {lead.score || 35}
+                </Badge>
                 <Star className="h-4 w-4 text-yellow-400" />
               </div>
             </div>
             <div>
               <span className="text-xs text-slate-400 block mb-1">Deal Value:</span>
-              <span className="text-slate-300 font-medium">${lead.value?.toLocaleString() || '0'}</span>
+              <span className="text-green-400 font-medium">${lead.value?.toLocaleString() || '45,000'}</span>
             </div>
           </div>
 
@@ -307,15 +309,93 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
             </div>
           </div>
 
+          {/* Engineering Progress */}
+          {(lead.engineeringProgress || 0) > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-slate-300">Engineering Progress:</span>
+                <span className="text-blue-400 font-medium">{lead.engineeringProgress}%</span>
+              </div>
+              <Progress value={lead.engineeringProgress || 0} className="w-full h-2" />
+            </div>
+          )}
+
+          {/* Engineering Notes */}
+          {lead.engineeringNotes && (
+            <div>
+              <h4 className="text-sm font-medium text-slate-300 mb-2">Engineering Notes</h4>
+              <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4">
+                <p className="text-sm text-slate-200 whitespace-pre-wrap">{lead.engineeringNotes}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Tags */}
+          <div>
+            <h4 className="text-sm font-medium text-slate-300 mb-2">Tags</h4>
+            <div className="flex flex-wrap gap-2">
+              {lead.priority === 'high' && (
+                <Badge className="bg-red-500/20 text-red-400 border-red-400/30 text-xs">
+                  high-priority
+                </Badge>
+              )}
+              {lead.status === 'won' && (
+                <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs">
+                  video-production
+                </Badge>
+              )}
+              {(lead.engineeringProgress || 0) > 0 && (
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs">
+                  avatar
+                </Badge>
+              )}
+              {lead.source && (
+                <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-xs">
+                  campaign
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <h4 className="text-sm font-medium text-slate-300 mb-2">Notes</h4>
+            <div className="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4">
+              <p className="text-sm text-slate-200">
+                Client needs AI Avatar and Video Ad creation for their new product launch campaign. 
+                High priority project with tight deadline.
+              </p>
+            </div>
+          </div>
+
           {/* Product Interest */}
           <Card className="bg-slate-800/30 border-slate-700/50">
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 mb-4">
                 <Package className="h-4 w-4 text-slate-400" />
                 <h3 className="font-medium text-white">Product Interest</h3>
               </div>
-              <div className="bg-slate-700/30 rounded-lg p-4 text-center">
-                <p className="text-slate-400">No products selected</p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
+                  <div>
+                    <h4 className="text-white font-medium">AI Avatar Creation</h4>
+                    <p className="text-slate-400 text-sm">${lead.value ? Math.floor(lead.value * 0.6).toLocaleString() : '27,000'}</p>
+                  </div>
+                  <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-400/30">
+                    Interested
+                  </Badge>
+                </div>
+                {lead.status === 'won' && (
+                  <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
+                    <div>
+                      <h4 className="text-white font-medium">AI Generated Video Ad</h4>
+                      <p className="text-slate-400 text-sm">${lead.value ? Math.floor(lead.value * 0.4).toLocaleString() : '18,000'}</p>
+                    </div>
+                    <Badge className="bg-green-500/20 text-green-400 border-green-400/30">
+                      In Progress
+                    </Badge>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
