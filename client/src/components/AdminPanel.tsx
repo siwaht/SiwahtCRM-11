@@ -19,9 +19,14 @@ import {
   Database,
   Download,
   Upload,
-  AlertTriangle
+  AlertTriangle,
+  MessageSquare,
+  Calendar,
+  Phone,
+  Mail,
+  Eye
 } from "lucide-react";
-import type { User, Webhook as WebhookType, Product, Lead } from "@shared/schema";
+import type { User, Webhook as WebhookType, Product, Lead, Interaction } from "@shared/schema";
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("users");
@@ -51,6 +56,11 @@ export default function AdminPanel() {
 
   const { data: leads = [] } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
+  });
+
+  // Interactions query for MCP management
+  const { data: allInteractions = [], isLoading: interactionsLoading } = useQuery<Interaction[]>({
+    queryKey: ["/api/interactions/all"],
   });
 
   const deleteWebhookMutation = useMutation({
@@ -92,6 +102,26 @@ export default function AdminPanel() {
         variant: "destructive",
         title: "Error",
         description: "Failed to send test webhook",
+      });
+    },
+  });
+
+  const deleteInteractionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/interactions/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/interactions/all"] });
+      toast({
+        title: "Success",
+        description: "Interaction deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete interaction",
       });
     },
   });
@@ -423,6 +453,144 @@ export default function AdminPanel() {
                     <Badge className="bg-green-500/20 text-green-400 text-xs">update_lead</Badge>
                     <Badge className="bg-purple-500/20 text-purple-400 text-xs">get_analytics</Badge>
                     <Badge className="bg-orange-500/20 text-orange-400 text-xs">manage_products</Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* MCP Interactions Management */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-white">MCP Interactions Management</h3>
+              </div>
+              
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-white font-medium mb-1">All System Interactions</h4>
+                    <p className="text-slate-400 text-sm">Manage interactions across all leads and users</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-sm">
+                      <span className="text-slate-400">Total: </span>
+                      <span className="text-white font-medium">{allInteractions.length}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {interactionsLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mx-auto"></div>
+                    <p className="text-slate-400 mt-2">Loading interactions...</p>
+                  </div>
+                ) : allInteractions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageSquare className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                    <p className="text-slate-400">No interactions found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {allInteractions.map((interaction) => {
+                      const getInteractionIcon = (type: string) => {
+                        switch (type) {
+                          case "call": return <Phone className="h-4 w-4" />;
+                          case "email": return <Mail className="h-4 w-4" />;
+                          case "meeting": return <Calendar className="h-4 w-4" />;
+                          case "urgent": return <AlertTriangle className="h-4 w-4" />;
+                          case "team": return <Users className="h-4 w-4" />;
+                          default: return <MessageSquare className="h-4 w-4" />;
+                        }
+                      };
+                      
+                      const getInteractionColor = (type: string) => {
+                        switch (type) {
+                          case "call": return "text-blue-400";
+                          case "email": return "text-green-400";
+                          case "meeting": return "text-purple-400";
+                          case "urgent": return "text-red-400";
+                          case "team": return "text-orange-400";
+                          default: return "text-slate-400";
+                        }
+                      };
+                      
+                      const leadData = leads.find(l => l.id === interaction.leadId);
+                      const userData = users.find(u => u.id === interaction.userId);
+                      
+                      return (
+                        <div key={interaction.id} className="p-4 bg-slate-900/50 rounded-lg border border-slate-700">
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-slate-700 ${getInteractionColor(interaction.type)}`}>
+                                {getInteractionIcon(interaction.type)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Badge className="text-xs capitalize bg-slate-600/20">
+                                    {interaction.type}
+                                  </Badge>
+                                  <span className="text-xs text-slate-400">
+                                    {new Date(interaction.createdAt).toLocaleDateString()}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-slate-200 mb-2 line-clamp-2">
+                                  {interaction.text}
+                                </p>
+                                <div className="flex items-center gap-4 text-xs text-slate-400">
+                                  <span>Lead: {leadData?.name || 'Unknown'}</span>
+                                  <span>By: {userData?.name || 'Unknown User'}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="p-1 hover:bg-slate-600"
+                                data-testid={`button-view-interaction-${interaction.id}`}
+                              >
+                                <Eye className="h-4 w-4 text-slate-400" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="p-1 hover:bg-red-500/20 text-red-400"
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this interaction?')) {
+                                    deleteInteractionMutation.mutate(interaction.id);
+                                  }
+                                }}
+                                disabled={deleteInteractionMutation.isPending}
+                                data-testid={`button-delete-interaction-${interaction.id}`}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div className="bg-slate-900/50 p-3 rounded-lg">
+                      <p className="text-slate-400 text-xs">Total Interactions</p>
+                      <p className="text-white font-bold text-lg">{allInteractions.length}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-lg">
+                      <p className="text-slate-400 text-xs">Notes</p>
+                      <p className="text-white font-bold text-lg">{allInteractions.filter(i => i.type === 'note').length}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-lg">
+                      <p className="text-slate-400 text-xs">Calls</p>
+                      <p className="text-white font-bold text-lg">{allInteractions.filter(i => i.type === 'call').length}</p>
+                    </div>
+                    <div className="bg-slate-900/50 p-3 rounded-lg">
+                      <p className="text-slate-400 text-xs">Urgent</p>
+                      <p className="text-white font-bold text-lg">{allInteractions.filter(i => i.type === 'urgent').length}</p>
+                    </div>
                   </div>
                 </div>
               </div>

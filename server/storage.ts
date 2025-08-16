@@ -54,6 +54,7 @@ export interface IStorage {
   // Interactions
   getInteraction(id: number): Promise<Interaction | undefined>;
   getInteractionsByLead(leadId: number): Promise<Interaction[]>;
+  getAllInteractions(): Promise<Interaction[]>;
   createInteraction(interaction: InsertInteraction): Promise<Interaction>;
   updateInteraction(id: number, interaction: Partial<InsertInteraction>): Promise<Interaction | undefined>;
   deleteInteraction(id: number): Promise<boolean>;
@@ -263,6 +264,10 @@ export class DatabaseStorage implements IStorage {
 
   async getInteractionsByLead(leadId: number): Promise<Interaction[]> {
     return await db.select().from(interactions).where(eq(interactions.leadId, leadId)).orderBy(desc(interactions.createdAt));
+  }
+
+  async getAllInteractions(): Promise<Interaction[]> {
+    return await db.select().from(interactions).orderBy(desc(interactions.createdAt));
   }
 
   async createInteraction(insertInteraction: InsertInteraction): Promise<Interaction> {

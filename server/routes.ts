@@ -358,6 +358,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all interactions for admin panel MCP section
+  app.get('/api/interactions/all', requireAuth, async (req, res) => {
+    try {
+      const interactions = await storage.getAllInteractions();
+      res.json(interactions);
+    } catch (error) {
+      console.error('Get all interactions error:', error);
+      res.status(500).json({ message: 'Failed to get interactions' });
+    }
+  });
+
   app.delete('/api/interactions/:id', requireAuth, async (req, res) => {
     try {
       const interactionId = parseInt(req.params.id);
