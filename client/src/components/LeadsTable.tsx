@@ -232,11 +232,11 @@ export default function LeadsTable() {
                         {lead.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                       </span>
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-white truncate">
-                        {lead.name} - {lead.company || 'TechCorp'}
+                        {lead.name}
                       </p>
-                      <p className="text-xs text-slate-400 truncate">{lead.source || 'Website'}</p>
+                      <p className="text-xs text-slate-400 truncate">{lead.company || lead.source || 'Website'}</p>
                     </div>
                   </div>
                 </div>
@@ -286,45 +286,43 @@ export default function LeadsTable() {
                 
                 {/* Products */}
                 <div className="col-span-1">
-                  <div className="flex flex-wrap gap-1">
-                    {lead.status === 'won' && (
-                      <>
-                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs px-2 py-1">
-                          AI Avatar Creation
-                        </Badge>
-                        {(lead.engineeringProgress || 0) > 0 && (
-                          <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-xs px-2 py-1">
-                            AI Generated Video Ad
-                          </Badge>
-                        )}
-                      </>
-                    )}
-                    {lead.status !== 'won' && (
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs px-2 py-1">
-                        AI Podcast Production
+                  <div className="truncate">
+                    {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 && (
+                      <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-xs px-1 py-0.5">
+                        Video Ad
                       </Badge>
                     )}
-                    {!lead.assignedProduct && lead.status === 'new' && (
-                      <span className="text-xs text-slate-500">No products</span>
+                    {lead.status === 'won' && (lead.engineeringProgress || 0) === 0 && (
+                      <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs px-1 py-0.5">
+                        AI Avatar
+                      </Badge>
+                    )}
+                    {lead.status !== 'won' && lead.assignedProduct && (
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs px-1 py-0.5">
+                        Podcast
+                      </Badge>
+                    )}
+                    {!lead.assignedProduct && (
+                      <span className="text-xs text-slate-500">None</span>
                     )}
                   </div>
                 </div>
                 
                 {/* Value */}
                 <div className="col-span-1">
-                  <span className="text-sm font-medium text-green-400">
-                    $ {lead.value ? lead.value.toLocaleString() : '0'}
+                  <span className="text-sm font-medium text-green-400 truncate block">
+                    ${lead.value ? lead.value.toLocaleString() : '0'}
                   </span>
                 </div>
                 
                 {/* Follow-up */}
                 <div className="col-span-1">
-                  <span className="text-xs text-slate-500">Not set</span>
+                  <span className="text-xs text-slate-500 truncate block">Not set</span>
                 </div>
                 
                 {/* Assigned */}
                 <div className="col-span-1">
-                  <span className="text-xs text-slate-400">{getAssigneeName(lead.assignedTo)}</span>
+                  <span className="text-xs text-slate-400 truncate block">{getAssigneeName(lead.assignedTo)}</span>
                 </div>
                 
                 {/* Actions */}
