@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import WebhookForm from "./WebhookForm";
@@ -24,7 +26,11 @@ import {
   Calendar,
   Phone,
   Mail,
-  Eye
+  Eye,
+  Search,
+  RotateCcw,
+  Check,
+  Filter
 } from "lucide-react";
 import type { User, Webhook as WebhookType, Product, Lead, Interaction } from "@shared/schema";
 
@@ -34,6 +40,7 @@ export default function AdminPanel() {
   const [editingWebhook, setEditingWebhook] = useState<WebhookType | null>(null);
   const [showUserForm, setShowUserForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const queryClient = useQueryClient();
@@ -134,14 +141,35 @@ export default function AdminPanel() {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Success",
-        description: "User deleted successfully",
+        description: "Agent deleted successfully",
       });
     },
     onError: () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to delete user",
+        description: "Failed to delete agent",
+      });
+    },
+  });
+
+  const updateUserStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await apiRequest("PUT", `/api/users/${id}`, { status });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Success",
+        description: "Agent status updated successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update agent status",
       });
     },
   });
@@ -266,7 +294,7 @@ export default function AdminPanel() {
             className={`flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial text-sm ${activeTab === "users" ? "bg-indigo-600" : "bg-slate-700"}`}
           >
             <Users className="h-4 w-4" />
-            <span className="hidden xs:inline">Users</span>
+            <span className="hidden xs:inline">Agents</span>
             <span className="text-xs">({users.length})</span>
           </Button>
           <Button
@@ -295,62 +323,203 @@ export default function AdminPanel() {
 
         {/* Tab Content */}
         {activeTab === "users" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-white">User Management</h3>
+          <div className="space-y-6">
+            {/* Agent Management Header */}
+            <div className="space-y-2">
+              <h3 className="text-2xl font-bold text-white">Agent Management</h3>
+              <p className="text-slate-400">Manage your CRM agents and their access permissions</p>
+            </div>
+
+            {/* Search and Filter Bar */}
+            <div className="flex gap-4 items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Input
+                  placeholder="Search agents by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 bg-slate-900 border-slate-700 text-white placeholder-slate-400"
+                  data-testid="input-search-agents"
+                />
+              </div>
               <Button
-                onClick={() => {
-                  setEditingUser(null);
-                  setShowUserForm(true);
-                }}
-                className="bg-indigo-600 hover:bg-indigo-700"
-                data-testid="button-add-user"
+                variant="outline"
+                className="border-slate-700 text-slate-300 hover:bg-slate-700"
               >
-                <UserPlus className="h-4 w-4 mr-2" />
-                Add User
+                <Filter className="h-4 w-4" />
               </Button>
             </div>
 
+            {/* Results Count */}
             {usersLoading ? (
-              <p className="text-slate-400">Loading users...</p>
-            ) : users.length === 0 ? (
-              <p className="text-slate-400">No users found</p>
+              <p className="text-slate-400">Loading agents...</p>
             ) : (
-              <div className="space-y-3">
-                {users.map((user) => (
-                  <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
-                    <div>
-                      <p className="font-medium text-white">{user.name}</p>
-                      <p className="text-sm text-slate-400">{user.email}</p>
-                      <Badge className="mt-1">{user.role}</Badge>
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setEditingUser(user);
-                          setShowUserForm(true);
-                        }}
-                        data-testid={`button-edit-user-${user.id}`}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="destructive" 
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete user "${user.name}"? This action cannot be undone.`)) {
-                            deleteUserMutation.mutate(user.id);
-                          }
-                        }}
-                        disabled={deleteUserMutation.isPending}
-                        data-testid={`button-delete-user-${user.id}`}
-                      >
-                        <Ban className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+              <p className="text-slate-400 text-sm">
+                Showing {users.filter(user => 
+                  user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  user.email.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length} of {users.length} agents
+              </p>
+            )}
+
+            {/* Agents Grid */}
+            {usersLoading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto"></div>
+                <p className="text-slate-400 mt-4">Loading agents...</p>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-400 mb-4">No agents found</p>
+                <Button
+                  onClick={() => {
+                    setEditingUser(null);
+                    setShowUserForm(true);
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700"
+                  data-testid="button-add-first-agent"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add First Agent
+                </Button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {users
+                  .filter(user => 
+                    user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    user.email.toLowerCase().includes(searchQuery.toLowerCase())
+                  )
+                  .map((user) => {
+                    const getInitials = (name: string) => {
+                      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                    };
+
+                    const getRoleBadgeColor = (role: string) => {
+                      switch (role) {
+                        case 'admin': return 'bg-red-500/20 text-red-400 border-red-400/30';
+                        case 'agent': return 'bg-blue-500/20 text-blue-400 border-blue-400/30';
+                        case 'engineer': return 'bg-purple-500/20 text-purple-400 border-purple-400/30';
+                        default: return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
+                      }
+                    };
+
+                    const getStatusBadgeColor = (status: string) => {
+                      switch (status) {
+                        case 'active': return 'bg-emerald-500/20 text-emerald-400 border-emerald-400/30';
+                        case 'inactive': return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
+                        case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30';
+                        default: return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
+                      }
+                    };
+
+                    return (
+                      <div key={user.id} className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-6">
+                        {/* Agent Header */}
+                        <div className="flex items-start gap-4 mb-4">
+                          <div className="w-12 h-12 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-lg">
+                            {getInitials(user.name)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-white font-semibold text-lg">{user.name}</h4>
+                              <Badge className={`text-xs px-2 py-1 border ${getRoleBadgeColor(user.role)} capitalize`}>
+                                {user.role}
+                              </Badge>
+                              <Badge className={`text-xs px-2 py-1 border ${getStatusBadgeColor(user.status)} capitalize`}>
+                                {user.status}
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Agent Details */}
+                        <div className="space-y-3 mb-6">
+                          <div className="flex items-center gap-2 text-slate-400 text-sm">
+                            <Mail className="h-4 w-4" />
+                            <span>{user.email}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-slate-400 text-sm">
+                            <Calendar className="h-4 w-4" />
+                            <span>Joined {new Date(user.createdAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-emerald-400 text-sm">
+                            <Check className="h-4 w-4" />
+                            <span>Login Credentials Set</span>
+                          </div>
+                        </div>
+
+                        {/* Enable/Disable Toggle */}
+                        <div className="flex items-center justify-between py-4 border-t border-slate-700">
+                          <span className="text-white font-medium">Enable/Disable Agent</span>
+                          <Switch
+                            checked={user.status === 'active'}
+                            onCheckedChange={(checked) => {
+                              updateUserStatusMutation.mutate({
+                                id: user.id,
+                                status: checked ? 'active' : 'inactive'
+                              });
+                            }}
+                            disabled={updateUserStatusMutation.isPending}
+                            data-testid={`switch-agent-status-${user.id}`}
+                          />
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-4">
+                          <Button
+                            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white"
+                            onClick={() => {
+                              setEditingUser(user);
+                              setShowUserForm(true);
+                            }}
+                            data-testid={`button-edit-agent-${user.id}`}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <Button
+                            className="flex-1 bg-slate-700 hover:bg-slate-600 text-white"
+                            data-testid={`button-reset-agent-${user.id}`}
+                          >
+                            <RotateCcw className="h-4 w-4 mr-2" />
+                            Reset
+                          </Button>
+                        </div>
+                        
+                        <Button
+                          className="w-full mt-3 bg-red-700 hover:bg-red-600 text-white"
+                          onClick={() => {
+                            if (confirm(`Are you sure you want to delete agent "${user.name}"? This action cannot be undone.`)) {
+                              deleteUserMutation.mutate(user.id);
+                            }
+                          }}
+                          disabled={deleteUserMutation.isPending}
+                          data-testid={`button-delete-agent-${user.id}`}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Agent
+                        </Button>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* Add Agent Button - Floating Action */}
+            {users.length > 0 && (
+              <div className="fixed bottom-8 right-8">
+                <Button
+                  onClick={() => {
+                    setEditingUser(null);
+                    setShowUserForm(true);
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 rounded-full h-14 w-14 shadow-lg"
+                  data-testid="button-add-agent-floating"
+                >
+                  <UserPlus className="h-6 w-6" />
+                </Button>
               </div>
             )}
           </div>
