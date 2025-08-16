@@ -49,7 +49,7 @@ export default function ProductCatalog() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: products = [], isLoading } = useQuery({
+  const { data: products = [], isLoading } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
@@ -117,7 +117,7 @@ export default function ProductCatalog() {
     return IconComponent;
   };
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = ((user as any)?.user?.role || user?.role) === "admin";
 
   if (isLoading) {
     return (

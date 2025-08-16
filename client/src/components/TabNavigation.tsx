@@ -18,7 +18,7 @@ const tabs = [
   { id: "dashboard", label: "Dashboard", icon: BarChart3, roles: ["admin", "agent", "engineer"] },
   { id: "leads-table", label: "Leads", icon: Table, roles: ["admin", "agent", "engineer"] },
   { id: "kanban", label: "Pipeline", icon: Columns, roles: ["admin", "agent", "engineer"] },
-  { id: "products", label: "Products", icon: Package, roles: ["admin", "agent"] },
+  { id: "products", label: "Products", icon: Package, roles: ["admin", "agent", "engineer"] },
   { id: "engineering", label: "Engineering", icon: Settings, roles: ["admin", "engineer"] },
   { id: "admin", label: "Admin", icon: ShieldCheck, roles: ["admin"] },
 ];
