@@ -72,11 +72,13 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
       const submitData = {
         ...formData,
         productIds: selectedProducts,
-        followUpDate: formData.followUpDate ? formData.followUpDate : null,
-        tags: formData.tags || []
+        followUpDate: formData.followUpDate ? new Date(formData.followUpDate) : null,
+        tags: formData.tags || [],
+        // Ensure value is within valid range or null
+        value: formData.value && formData.value <= 8388607 ? formData.value : null
       };
       
-      const result = await (lead ? 
+      const result: any = await (lead ? 
         apiRequest("PUT", `/api/leads/${lead.id}`, submitData) :
         apiRequest("POST", "/api/leads", submitData)
       );
@@ -297,7 +299,11 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
                 type="number"
                 step="0.01"
                 value={formData.value || ""}
-                onChange={(e) => handleChange("value", parseFloat(e.target.value) || undefined)}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  // Limit to valid range for PostgreSQL real type
+                  handleChange("value", (!isNaN(val) && val <= 8388607) ? val : undefined);
+                }}
                 placeholder="0.00"
                 className="mt-1 bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400"
                 data-testid="input-value"
@@ -309,7 +315,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
               <Input
                 id="followUpDate"
                 type="date"
-                value={formData.followUpDate || ""}
+                value={formData.followUpDate?.toString() || ""}
                 onChange={(e) => handleChange("followUpDate", e.target.value)}
                 placeholder="dd-mm-yyyy"
                 className="mt-1 bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400"
