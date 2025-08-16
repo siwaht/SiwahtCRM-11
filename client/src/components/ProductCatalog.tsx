@@ -555,7 +555,7 @@ export default function ProductCatalog() {
       {/* Product Details Modal */}
       <Dialog open={!!viewingProduct} onOpenChange={() => setViewingProduct(null)}>
         {viewingProduct && (
-          <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
+          <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-[95vw] sm:max-w-2xl lg:max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
             <DialogHeader className="flex-shrink-0">
               <DialogTitle className="flex items-center gap-3">
                 <Eye className="h-6 w-6 text-indigo-400" />
@@ -569,27 +569,27 @@ export default function ProductCatalog() {
             <div className="space-y-8 overflow-y-auto flex-1 pr-3 py-2 scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600 hover:scrollbar-thumb-slate-500">
               {/* Product Header */}
               <Card className="bg-gradient-to-r from-slate-800/40 to-slate-700/40 border-slate-600/50 shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4">
+                      <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
                         {(() => {
                           const Icon = (productIcons as any)[viewingProduct.name] || productIcons.default;
-                          return <Icon className="h-8 w-8 text-white" />;
+                          return <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-white" />;
                         })()}
                       </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-white mb-2">{viewingProduct.name}</h2>
-                        <Badge className={`${priorityColors[viewingProduct.priority as keyof typeof priorityColors] || 'text-slate-400'} border px-3 py-1 text-sm font-medium`}>
+                      <div className="min-w-0">
+                        <h2 className="text-lg sm:text-2xl font-bold text-white mb-2 break-words">{viewingProduct.name}</h2>
+                        <Badge className={`${priorityColors[viewingProduct.priority as keyof typeof priorityColors] || 'text-slate-400'} border px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium`}>
                           {viewingProduct.priority} Priority
                         </Badge>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold text-emerald-400 mb-2">
+                    <div className="text-left sm:text-right flex-shrink-0">
+                      <div className="text-2xl sm:text-3xl font-bold text-emerald-400 mb-2">
                         {viewingProduct.price}
                       </div>
-                      <Badge className={`${profitColors[viewingProduct.profitLevel as keyof typeof profitColors] || 'bg-slate-500/20 text-slate-400'} text-sm px-3 py-1 font-medium`}>
+                      <Badge className={`${profitColors[viewingProduct.profitLevel as keyof typeof profitColors] || 'bg-slate-500/20 text-slate-400'} text-xs sm:text-sm px-2 sm:px-3 py-1 font-medium`}>
                         {viewingProduct.profitLevel}
                       </Badge>
                     </div>
@@ -599,12 +599,12 @@ export default function ProductCatalog() {
 
               {/* Product Description */}
               <Card className="bg-slate-800/30 border-slate-700/50">
-                <CardContent className="p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-blue-400" />
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                    <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-blue-400" />
                     Product Description
                   </h3>
-                  <p className="text-slate-300 leading-relaxed">
+                  <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
                     {viewingProduct.pitch || "No description available"}
                   </p>
                 </CardContent>
@@ -613,16 +613,16 @@ export default function ProductCatalog() {
               {/* Sales Information */}
               {(viewingProduct.talkingPoints || viewingProduct.agentNotes) && (
                 <Card className="bg-slate-800/30 border-slate-700/50">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
-                      <Bot className="h-5 w-5 text-green-400" />
+                  <CardContent className="p-4 sm:p-6">
+                    <h3 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6 flex items-center gap-2">
+                      <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-green-400" />
                       Sales Information
                     </h3>
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                       {viewingProduct.talkingPoints && (
                         <div>
-                          <h4 className="text-md font-medium text-indigo-400 mb-3">Pitch Points:</h4>
-                          <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                          <h4 className="text-sm sm:text-md font-medium text-indigo-400 mb-2 sm:mb-3">Pitch Points:</h4>
+                          <p className="text-sm sm:text-base text-slate-300 leading-relaxed whitespace-pre-line">
                             {viewingProduct.talkingPoints}
                           </p>
                         </div>
@@ -630,8 +630,8 @@ export default function ProductCatalog() {
                       
                       {viewingProduct.agentNotes && (
                         <div>
-                          <h4 className="text-md font-medium text-purple-400 mb-3">Agent Notes:</h4>
-                          <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                          <h4 className="text-sm sm:text-md font-medium text-purple-400 mb-2 sm:mb-3">Agent Notes:</h4>
+                          <p className="text-sm sm:text-base text-slate-300 leading-relaxed whitespace-pre-line">
                             {viewingProduct.agentNotes}
                           </p>
                         </div>
@@ -644,16 +644,16 @@ export default function ProductCatalog() {
               {/* Tags */}
               {viewingProduct.tags && viewingProduct.tags.length > 0 && (
                 <Card className="bg-slate-800/30 border-slate-700/50">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                      <Package className="h-5 w-5 text-orange-400" />
+                  <CardContent className="p-4 sm:p-6">
+                    <h3 className="text-base sm:text-lg font-semibold text-white mb-3 sm:mb-4 flex items-center gap-2">
+                      <Package className="h-4 w-4 sm:h-5 sm:w-5 text-orange-400" />
                       Tags
                     </h3>
                     <div className="flex flex-wrap gap-2">
                       {viewingProduct.tags.map((tag, index) => (
                         <Badge
                           key={index}
-                          className="bg-slate-700/50 text-slate-300 border border-slate-600/50 px-3 py-1.5 text-sm"
+                          className="bg-slate-700/50 text-slate-300 border border-slate-600/50 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm"
                         >
                           {tag}
                         </Badge>
