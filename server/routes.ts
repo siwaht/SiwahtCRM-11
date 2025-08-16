@@ -248,10 +248,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract productIds from request body before validation
       const { productIds, ...leadDataRaw } = req.body;
       
-      // Convert followUpDate string to Date object if present
-      if (leadDataRaw.followUpDate && typeof leadDataRaw.followUpDate === 'string') {
-        leadDataRaw.followUpDate = new Date(leadDataRaw.followUpDate);
+      console.log('Raw request data:', leadDataRaw);
+      console.log('followUpDate before conversion:', leadDataRaw.followUpDate, typeof leadDataRaw.followUpDate);
+      
+      // Convert followUpDate string to Date object if present, or null if empty string
+      if (leadDataRaw.followUpDate) {
+        if (typeof leadDataRaw.followUpDate === 'string') {
+          if (leadDataRaw.followUpDate.trim() === '') {
+            leadDataRaw.followUpDate = null;
+          } else {
+            leadDataRaw.followUpDate = new Date(leadDataRaw.followUpDate);
+          }
+        }
+      } else {
+        leadDataRaw.followUpDate = null;
       }
+      
+      console.log('followUpDate after conversion:', leadDataRaw.followUpDate, typeof leadDataRaw.followUpDate);
       
       // Validate lead data (without productIds)
       const leadData = insertLeadSchema.parse(leadDataRaw);
