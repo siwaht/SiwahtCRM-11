@@ -450,8 +450,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/lead-attachments/:id', requireAuth, async (req, res) => {
     try {
       const attachmentId = parseInt(req.params.id);
-      const success = await storage.deleteLeadAttachment(attachmentId);
-      if (success) {
+      const result = await storage.deleteLeadAttachment(attachmentId);
+      
+      if (result.success && result.fileSize && result.uploadedById) {
+        // Update user's storage usage
+        const user = await storage.getUser(result.uploadedById);
+        if (user) {
+          const newStorageUsed = Math.max(0, (user.storageUsed || 0) - result.fileSize);
+          await storage.updateUserStorage(result.uploadedById, newStorageUsed);
+        }
+        res.json({ success: true });
+      } else if (result.success) {
         res.json({ success: true });
       } else {
         res.status(404).json({ message: 'Attachment not found' });

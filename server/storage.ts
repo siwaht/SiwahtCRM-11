@@ -73,7 +73,7 @@ export interface IStorage {
   getLeadAttachment(id: number): Promise<LeadAttachment | undefined>;
   getAttachmentsByLead(leadId: number): Promise<LeadAttachment[]>;
   createLeadAttachment(attachment: InsertLeadAttachment): Promise<LeadAttachment>;
-  deleteLeadAttachment(id: number): Promise<boolean>;
+  deleteLeadAttachment(id: number): Promise<{ success: boolean; fileSize?: number; uploadedById?: number }>;
 
   // MCP Servers
   getMcpServer(id: number): Promise<McpServer | undefined>;
@@ -359,9 +359,22 @@ export class DatabaseStorage implements IStorage {
     return attachment;
   }
 
-  async deleteLeadAttachment(id: number): Promise<boolean> {
+  async deleteLeadAttachment(id: number): Promise<{ success: boolean; fileSize?: number; uploadedById?: number }> {
+    // Get attachment info before deleting
+    const [attachment] = await db.select().from(leadAttachments).where(eq(leadAttachments.id, id));
+    if (!attachment) {
+      return { success: false };
+    }
+    
+    // Delete the attachment
     const result = await db.delete(leadAttachments).where(eq(leadAttachments.id, id));
-    return (result.rowCount || 0) > 0;
+    const success = (result.rowCount || 0) > 0;
+    
+    return {
+      success,
+      fileSize: success ? (attachment.fileSize || 0) : undefined,
+      uploadedById: success ? (attachment.uploadedById || 0) : undefined
+    };
   }
 
   // MCP Servers
