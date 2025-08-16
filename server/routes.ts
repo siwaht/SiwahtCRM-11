@@ -245,8 +245,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/leads', requireAuth, async (req, res) => {
     try {
-      const leadData = insertLeadSchema.parse(req.body);
-      const lead = await storage.createLead(leadData);
+      // Extract productIds from request body before validation
+      const { productIds, ...leadDataRaw } = req.body;
+      
+      // Validate lead data (without productIds)
+      const leadData = insertLeadSchema.parse(leadDataRaw);
+      
+      // Create lead with productIds
+      const lead = await storage.createLead(leadData, productIds);
       
       // Trigger webhooks
       await triggerWebhooks('lead.created', lead);
@@ -261,10 +267,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put('/api/leads/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const leadData = req.body;
+      // Extract productIds from request body before validation
+      const { productIds, ...leadDataRaw } = req.body;
       const originalLead = await storage.getLead(id);
       
-      const lead = await storage.updateLead(id, leadData);
+      const lead = await storage.updateLead(id, leadDataRaw, productIds);
       if (!lead) {
         return res.status(404).json({ message: 'Lead not found' });
       }
