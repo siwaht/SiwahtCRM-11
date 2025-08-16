@@ -265,19 +265,19 @@ export default function ProductCatalog() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Product Catalog</h2>
-          <p className="text-slate-400 mt-1">AI Service offerings and sales guidance</p>
+          <h2 className="text-xl sm:text-2xl font-bold">Product Catalog</h2>
+          <p className="text-slate-400 mt-1 text-sm sm:text-base">AI Service offerings and sales guidance</p>
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
           {/* Export Button - Available to all users */}
           <Button
             variant="outline"
             onClick={exportProducts}
-            className="flex items-center space-x-2"
+            className="flex items-center justify-center space-x-2"
             data-testid="button-export-products"
           >
             <Download className="h-4 w-4" />
@@ -290,7 +290,7 @@ export default function ProductCatalog() {
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center space-x-2"
+                className="flex items-center justify-center space-x-2"
                 data-testid="button-import-products"
               >
                 <Upload className="h-4 w-4" />
@@ -312,7 +312,7 @@ export default function ProductCatalog() {
                   setEditingProduct(null);
                   setShowProductForm(true);
                 }}
-                className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+                className="flex items-center justify-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
                 data-testid="button-add-product"
               >
                 <Plus className="h-4 w-4" />

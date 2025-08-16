@@ -220,44 +220,46 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-white">Admin Panel</h2>
-        <p className="text-slate-400 mt-1">System configuration and user management</p>
+      <div className="mb-4 sm:mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-white">Admin Panel</h2>
+        <p className="text-slate-400 mt-1 text-sm sm:text-base">System configuration and user management</p>
         
       </div>
 
       {/* Simple Tabs */}
-      <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-6">
-        <div className="flex space-x-4 mb-6">
+      <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4 sm:p-6">
+        <div className="flex flex-wrap gap-2 sm:gap-4 mb-4 sm:mb-6">
           <Button
             onClick={() => setActiveTab("users")}
-            className={`flex items-center space-x-2 ${activeTab === "users" ? "bg-indigo-600" : "bg-slate-700"}`}
+            className={`flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial text-sm ${activeTab === "users" ? "bg-indigo-600" : "bg-slate-700"}`}
           >
             <Users className="h-4 w-4" />
-            <span>Users ({users.length})</span>
+            <span className="hidden xs:inline">Users</span>
+            <span className="text-xs">({users.length})</span>
           </Button>
           <Button
             onClick={() => setActiveTab("webhooks")}
-            className={`flex items-center space-x-2 ${activeTab === "webhooks" ? "bg-indigo-600" : "bg-slate-700"}`}
+            className={`flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial text-sm ${activeTab === "webhooks" ? "bg-indigo-600" : "bg-slate-700"}`}
           >
             <Webhook className="h-4 w-4" />
-            <span>Webhooks ({webhooks.length})</span>
+            <span className="hidden xs:inline">Webhooks</span>
+            <span className="text-xs">({webhooks.length})</span>
           </Button>
           <Button
             onClick={() => setActiveTab("mcp")}
-            className={`flex items-center space-x-2 ${activeTab === "mcp" ? "bg-indigo-600" : "bg-slate-700"}`}
+            className={`flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial text-sm ${activeTab === "mcp" ? "bg-indigo-600" : "bg-slate-700"}`}
           >
             <Bot className="h-4 w-4" />
-            <span>AI Integration</span>
+            <span className="hidden xs:inline">AI</span>
           </Button>
           <Button
             onClick={() => setActiveTab("database")}
-            className={`flex items-center space-x-2 ${activeTab === "database" ? "bg-indigo-600" : "bg-slate-700"}`}
+            className={`flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial text-sm ${activeTab === "database" ? "bg-indigo-600" : "bg-slate-700"}`}
           >
             <Database className="h-4 w-4" />
-            <span>Database</span>
+            <span className="hidden xs:inline">DB</span>
           </Button>
         </div>
 
@@ -557,7 +559,7 @@ export default function AdminPanel() {
             {/* Statistics */}
             <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
               <h4 className="font-medium text-white mb-3">Database Statistics</h4>
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4 text-sm">
                 <div>
                   <p className="text-slate-400">Users:</p>
                   <p className="text-white font-medium" data-testid="stat-users">{users.length}</p>

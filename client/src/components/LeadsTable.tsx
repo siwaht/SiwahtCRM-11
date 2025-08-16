@@ -129,28 +129,30 @@ export default function LeadsTable() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
         <div>
-          <h2 className="text-2xl font-bold">Lead Management</h2>
-          <p className="text-slate-400 mt-1">Manage and track all your leads</p>
+          <h2 className="text-xl sm:text-2xl font-bold">Lead Management</h2>
+          <p className="text-slate-400 mt-1 text-sm sm:text-base">Manage and track all your leads</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <Button variant="outline" className="flex items-center space-x-2" data-testid="button-export">
-            <Download className="h-4 w-4" />
-            <span>Export</span>
-          </Button>
-          <Button variant="outline" className="flex items-center space-x-2" data-testid="button-import">
-            <Upload className="h-4 w-4" />
-            <span>Import</span>
-          </Button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
+          <div className="flex space-x-2 sm:space-x-3">
+            <Button variant="outline" className="flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial" data-testid="button-export">
+              <Download className="h-4 w-4" />
+              <span className="hidden xs:inline">Export</span>
+            </Button>
+            <Button variant="outline" className="flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial" data-testid="button-import">
+              <Upload className="h-4 w-4" />
+              <span className="hidden xs:inline">Import</span>
+            </Button>
+          </div>
           <Button
             onClick={() => {
               setEditingLead(null);
               setShowLeadForm(true);
             }}
-            className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+            className="flex items-center justify-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
             data-testid="button-add-lead"
           >
             <Plus className="h-4 w-4" />
@@ -162,7 +164,7 @@ export default function LeadsTable() {
       {/* Filters */}
       <Card className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div>
               <label className="block text-sm text-slate-400 mb-2">Search</label>
               <div className="relative">
@@ -228,63 +230,63 @@ export default function LeadsTable() {
       {/* Table */}
       <Card className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[640px]">
             <thead className="bg-slate-800/50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   <div className="flex items-center space-x-2">
                     <span>Lead</span>
                     <ArrowUpDown className="h-3 w-3 text-slate-500" />
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   <div className="flex items-center space-x-2">
                     <span>Status</span>
                     <ArrowUpDown className="h-3 w-3 text-slate-500" />
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
                   <div className="flex items-center space-x-2">
                     <span>Value</span>
                     <ArrowUpDown className="h-3 w-3 text-slate-500" />
                   </div>
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Last Contact</th>
-                <th className="px-6 py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Assigned</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider hidden sm:table-cell">Last Contact</th>
+                <th className="px-3 sm:px-6 py-3 sm:py-4 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/50">
               {leads.map((lead: Lead) => (
                 <tr key={lead.id} className="hover:bg-slate-800/20 transition-colors" data-testid={`row-lead-${lead.id}`}>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-medium text-sm">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4">
+                    <div className="flex items-center space-x-2 sm:space-x-3">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-medium text-xs sm:text-sm">
                           {lead.company ? lead.company.charAt(0).toUpperCase() : lead.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
-                      <div>
-                        <p className="text-sm font-medium">{lead.company || lead.name}</p>
-                        <p className="text-xs text-slate-400">{lead.email}</p>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-medium truncate">{lead.company || lead.name}</p>
+                        <p className="text-xs text-slate-400 truncate">{lead.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4">
                     {getStatusBadge(lead.status)}
                   </td>
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-medium">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4">
+                    <span className="text-xs sm:text-sm font-medium">
                       {lead.value ? `$${lead.value.toLocaleString()}` : "—"}
                     </span>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4">
                     <div className="flex items-center space-x-2">
-                      <div className="w-6 h-6 bg-indigo-500 rounded-full"></div>
-                      <span className="text-sm">{getAssigneeName(lead.assignedTo)}</span>
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-indigo-500 rounded-full flex-shrink-0"></div>
+                      <span className="text-xs sm:text-sm truncate">{getAssigneeName(lead.assignedTo)}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4 hidden sm:table-cell">
                     <span className="text-sm text-slate-400">
                       {lead.lastContactedAt 
                         ? new Date(lead.lastContactedAt).toLocaleDateString()
@@ -292,12 +294,12 @@ export default function LeadsTable() {
                       }
                     </span>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
+                  <td className="px-3 sm:px-6 py-3 sm:py-4">
+                    <div className="flex items-center space-x-1 sm:space-x-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="p-2 hover:bg-slate-700/50 rounded-lg"
+                        className="p-1 sm:p-2 hover:bg-slate-700/50 rounded-lg"
                         data-testid={`button-view-${lead.id}`}
                       >
                         <Eye className="h-4 w-4 text-slate-400" />
@@ -306,7 +308,7 @@ export default function LeadsTable() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleEdit(lead)}
-                        className="p-2 hover:bg-slate-700/50 rounded-lg"
+                        className="p-1 sm:p-2 hover:bg-slate-700/50 rounded-lg"
                         data-testid={`button-edit-${lead.id}`}
                       >
                         <Edit className="h-4 w-4 text-slate-400" />
@@ -315,7 +317,7 @@ export default function LeadsTable() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(lead.id)}
-                        className="p-2 hover:bg-red-500/20 text-red-400 rounded-lg"
+                        className="p-1 sm:p-2 hover:bg-red-500/20 text-red-400 rounded-lg"
                         data-testid={`button-delete-${lead.id}`}
                       >
                         <Trash2 className="h-4 w-4" />
