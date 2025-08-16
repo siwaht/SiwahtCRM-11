@@ -106,63 +106,63 @@ export default function UserForm({ user, onClose }: UserFormProps) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="firstName" className="text-slate-300">First Name</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="firstName" className="block text-slate-300 font-medium">First Name</Label>
               <Input
                 id="firstName"
                 value={formData.firstName || ""}
                 onChange={(e) => handleChange("firstName", e.target.value)}
-                className="mt-1 bg-slate-800/50 border-slate-700"
+                className="bg-slate-800/50 border-slate-700"
                 required
                 data-testid="input-first-name"
               />
             </div>
 
-            <div>
-              <Label htmlFor="lastName" className="text-slate-300">Last Name</Label>
+            <div className="space-y-2">
+              <Label htmlFor="lastName" className="block text-slate-300 font-medium">Last Name</Label>
               <Input
                 id="lastName"
                 value={formData.lastName || ""}
                 onChange={(e) => handleChange("lastName", e.target.value)}
-                className="mt-1 bg-slate-800/50 border-slate-700"
+                className="bg-slate-800/50 border-slate-700"
                 required
                 data-testid="input-last-name"
               />
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="email" className="text-slate-300">Email</Label>
+          <div className="space-y-2">
+            <Label htmlFor="email" className="block text-slate-300 font-medium">Email</Label>
             <Input
               id="email"
               type="email"
               value={formData.email}
               onChange={(e) => handleChange("email", e.target.value)}
-              className="mt-1 bg-slate-800/50 border-slate-700"
+              className="bg-slate-800/50 border-slate-700"
               required
               data-testid="input-email"
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="phone" className="text-slate-300">Phone Number</Label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="block text-slate-300 font-medium">Phone Number</Label>
               <Input
                 id="phone"
                 type="tel"
                 value={formData.phone || ""}
                 onChange={(e) => handleChange("phone", e.target.value)}
-                className="mt-1 bg-slate-800/50 border-slate-700"
+                className="bg-slate-800/50 border-slate-700"
                 placeholder="+1 (555) 123-4567"
                 data-testid="input-phone"
               />
             </div>
 
-            <div>
-              <Label htmlFor="status" className="text-slate-300">Status</Label>
+            <div className="space-y-2">
+              <Label htmlFor="status" className="block text-slate-300 font-medium">Status</Label>
               <Select value={formData.isActive ? "Active" : "Inactive"} onValueChange={(value) => handleChange("isActive", value === "Active")}>
-                <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-status">
+                <SelectTrigger className="bg-slate-800/50 border-slate-700" data-testid="select-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-800 border-slate-700">
@@ -173,22 +173,22 @@ export default function UserForm({ user, onClose }: UserFormProps) {
             </div>
           </div>
 
-          <div>
-            <Label htmlFor="address" className="text-slate-300">Address</Label>
+          <div className="space-y-2">
+            <Label htmlFor="address" className="block text-slate-300 font-medium">Address</Label>
             <Textarea
               id="address"
               value={formData.address || ""}
               onChange={(e) => handleChange("address", e.target.value)}
-              className="mt-1 bg-slate-800/50 border-slate-700 min-h-[80px]"
+              className="bg-slate-800/50 border-slate-700 min-h-[80px]"
               placeholder="123 Main Street, City, State, ZIP"
               data-testid="textarea-address"
             />
           </div>
 
-          <div>
-            <Label htmlFor="role" className="text-slate-300">Role</Label>
+          <div className="space-y-2">
+            <Label htmlFor="role" className="block text-slate-300 font-medium">Role</Label>
             <Select value={formData.role} onValueChange={(value) => handleChange("role", value)}>
-              <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-role">
+              <SelectTrigger className="bg-slate-800/50 border-slate-700" data-testid="select-role">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-700">
@@ -199,8 +199,8 @@ export default function UserForm({ user, onClose }: UserFormProps) {
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="password" className="text-slate-300">
+          <div className="space-y-2">
+            <Label htmlFor="password" className="block text-slate-300 font-medium">
               New Password {user ? "(leave blank to keep current)" : ""}
             </Label>
             <Input
@@ -208,41 +208,42 @@ export default function UserForm({ user, onClose }: UserFormProps) {
               type="password"
               value={formData.password}
               onChange={(e) => handleChange("password", e.target.value)}
-              className="mt-1 bg-slate-800/50 border-slate-700"
+              className="bg-slate-800/50 border-slate-700"
               placeholder="Enter new password or leave blank"
               data-testid="input-password"
             />
           </div>
 
-          <div>
-            <Label htmlFor="profilePhoto" className="text-slate-300">Profile Photo</Label>
+          <div className="space-y-2">
+            <Label htmlFor="profilePhoto" className="block text-slate-300 font-medium">Profile Photo</Label>
             <Input
               id="profilePhoto"
               type="file"
               accept="image/*"
               onChange={(e) => handleChange("profilePhoto", e.target.files?.[0] || null)}
-              className="mt-1 bg-slate-800/50 border-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+              className="bg-slate-800/50 border-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
               data-testid="input-profile-photo"
             />
           </div>
 
-          <div>
-            <Label htmlFor="idDocument" className="text-slate-300">ID Document</Label>
+          <div className="space-y-2">
+            <Label htmlFor="idDocument" className="block text-slate-300 font-medium">ID Document</Label>
             <Input
               id="idDocument"
               type="file"
               accept=".pdf,.jpg,.jpeg,.png"
               onChange={(e) => handleChange("idDocument", e.target.files?.[0] || null)}
-              className="mt-1 bg-slate-800/50 border-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+              className="bg-slate-800/50 border-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
               data-testid="input-id-document"
             />
           </div>
 
-          <div className="flex items-center justify-end space-x-3 pt-4">
+          <div className="flex items-center justify-end space-x-3 pt-6 border-t border-slate-700/30">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
+              className="border-slate-600 text-slate-300 hover:bg-slate-700"
               data-testid="button-cancel"
             >
               Cancel
