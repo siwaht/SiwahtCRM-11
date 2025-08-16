@@ -10,8 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ObjectUploader } from "./ObjectUploader";
-import type { UploadResult } from "@uppy/core";
 import { 
   X, 
   MessageSquare, 
@@ -769,72 +767,106 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
               )}
             </div>
             
-            {/* Compact Upload Controls */}
-            <div className="flex items-stretch gap-2">
+            {/* Simple Upload Interface */}
+            <div className="space-y-3">
               <Input 
                 value={fileDescription}
                 onChange={(e) => setFileDescription(e.target.value)}
                 placeholder="Optional description for the files..."
-                className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm h-8 flex-1"
+                className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm h-8"
                 data-testid="input-file-description"
               />
-              <ObjectUploader
-                maxNumberOfFiles={5}
-                maxFileSize={10485760} // 10MB
-                storageUsed={storageInfo?.storageUsed || 0}
-                storageLimit={storageInfo?.storageLimit || 524288000}
-                onGetUploadParameters={async () => {
-                  try {
-                    const response = await apiRequest("POST", "/api/objects/upload");
-                    const data = await response.json();
-                    return {
-                      method: "PUT" as const,
-                      url: data.uploadURL || data.url
-                    };
-                  } catch (error) {
-                    console.error('Error getting upload URL:', error);
-                    throw new Error('Failed to get upload URL');
-                  }
-                }}
-                onComplete={async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-                  // Handle successful upload
-                  for (const file of result.successful || []) {
+              
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  id="file-upload"
+                  multiple
+                  accept="*/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length === 0) return;
+                    
+                    // Store current description
+                    const currentDescription = fileDescription.trim();
+                    
+                    toast({
+                      title: "Uploading",
+                      description: `Uploading ${files.length} file(s)...`,
+                    });
+                    
                     try {
-                      await apiRequest("PUT", "/api/lead-attachments", {
-                        fileURL: file.uploadURL,
-                        leadId: lead.id,
-                        fileName: file.name,
-                        fileSize: file.size,
-                        description: fileDescription.trim() || null
+                      for (const file of files) {
+                        // Get upload URL
+                        const response = await apiRequest("POST", "/api/objects/upload");
+                        const data = await response.json();
+                        
+                        // Upload file directly to storage
+                        const uploadResponse = await fetch(data.uploadURL || data.url, {
+                          method: 'PUT',
+                          body: file,
+                          headers: {
+                            'Content-Type': file.type || 'application/octet-stream'
+                          }
+                        });
+                        
+                        if (!uploadResponse.ok) {
+                          throw new Error(`Failed to upload ${file.name}`);
+                        }
+                        
+                        // Save file metadata
+                        await apiRequest("PUT", "/api/lead-attachments", {
+                          fileURL: data.uploadURL || data.url,
+                          leadId: lead.id,
+                          fileName: file.name,
+                          fileSize: file.size,
+                          description: currentDescription || null
+                        });
+                      }
+                      
+                      // Refresh data
+                      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+                      queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+                      
+                      // Clear form
+                      setFileDescription("");
+                      e.target.value = ''; // Reset file input
+                      
+                      toast({
+                        title: "Success",
+                        description: `${files.length} file(s) uploaded successfully`,
                       });
+                      
                     } catch (error) {
-                      console.error('Error setting file metadata:', error);
+                      console.error('Upload error:', error);
+                      toast({
+                        variant: "destructive",
+                        title: "Upload Failed",
+                        description: error instanceof Error ? error.message : "Failed to upload files",
+                      });
+                      e.target.value = ''; // Reset file input
                     }
-                  }
-                  
-                  // Force refresh attachments - try multiple approaches
-                  await queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
-                  queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
-                  
-                  // Force a refetch
-                  setTimeout(() => {
-                    queryClient.refetchQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
-                  }, 500);
-                  
-                  // Clear form after successful upload
-                  setSelectedQuickAction(null);
-                  setFileDescription("");
-                  
-                  toast({
-                    title: "Success",
-                    description: `${result.successful?.length || 0} file(s) uploaded successfully`,
-                  });
-                }}
-                buttonClassName="bg-green-600 hover:bg-green-700 px-3 h-8 text-sm"
-              >
-                <Upload className="h-3 w-3 mr-1" />
-                Upload
-              </ObjectUploader>
+                  }}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium cursor-pointer transition-colors"
+                >
+                  <Upload className="h-4 w-4" />
+                  Choose Files
+                </label>
+                
+                {/* Storage Usage - Compact Version */}
+                <div className="text-xs text-slate-400">
+                  {storageInfo && (
+                    <>
+                      {(storageInfo.storageUsed / (1024 * 1024)).toFixed(1)} MB / {(storageInfo.storageLimit / (1024 * 1024)).toFixed(0)} MB
+                      ({Math.round((storageInfo.storageUsed / storageInfo.storageLimit) * 100)}% used)
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
