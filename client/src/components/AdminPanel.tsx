@@ -51,9 +51,13 @@ export default function AdminPanel() {
   const { toast } = useToast();
 
   // Users queries and mutations
-  const { data: users = [], isLoading: usersLoading } = useQuery({
+  const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ["/api/users"],
   });
+
+  console.log('AdminPanel - Users data:', users);
+  console.log('AdminPanel - Users loading:', usersLoading);
+  console.log('AdminPanel - Users error:', usersError);
 
   const deleteUserMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -76,9 +80,13 @@ export default function AdminPanel() {
   });
 
   // Webhooks queries and mutations
-  const { data: webhooks = [], isLoading: webhooksLoading } = useQuery({
+  const { data: webhooks = [], isLoading: webhooksLoading, error: webhooksError } = useQuery({
     queryKey: ["/api/webhooks"],
   });
+
+  console.log('AdminPanel - Webhooks data:', webhooks);
+  console.log('AdminPanel - Webhooks loading:', webhooksLoading);
+  console.log('AdminPanel - Webhooks error:', webhooksError);
 
   const deleteWebhookMutation = useMutation({
     mutationFn: async (id: number) => {
@@ -145,12 +153,28 @@ export default function AdminPanel() {
     testWebhookMutation.mutate(id);
   };
 
+  console.log('AdminPanel rendering...');
+
+  // Show debug info if there are errors
+  if (usersError || webhooksError) {
+    console.error('AdminPanel API errors:', { usersError, webhooksError });
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold">Admin Panel</h2>
         <p className="text-slate-400 mt-1">System configuration and user management</p>
+        
+        {/* Debug Info */}
+        {(usersError || webhooksError) && (
+          <div className="mt-4 p-4 bg-red-500/20 border border-red-500/50 rounded-lg">
+            <p className="text-red-400 text-sm font-medium">API Errors Detected:</p>
+            {usersError && <p className="text-red-300 text-xs mt-1">Users: {String(usersError)}</p>}
+            {webhooksError && <p className="text-red-300 text-xs mt-1">Webhooks: {String(webhooksError)}</p>}
+          </div>
+        )}
       </div>
 
       {/* Tabs */}
