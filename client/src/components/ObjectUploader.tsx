@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
 import { Dashboard } from "@uppy/react";
@@ -102,7 +102,7 @@ export function ObjectUploader({
   };
 
   // Handle escape key to close
-  React.useEffect(() => {
+  useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && showUploader) {
         setShowUploader(false);
