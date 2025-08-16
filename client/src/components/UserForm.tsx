@@ -221,7 +221,7 @@ export default function UserForm({ user, onClose }: UserFormProps) {
               type="file"
               accept="image/*"
               onChange={(e) => handleChange("profilePhoto", e.target.files?.[0] || null)}
-              className="bg-slate-800/50 border-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+              className="w-full bg-slate-800/50 border-slate-700 text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-600 file:text-white file:cursor-pointer hover:file:bg-indigo-700 file:transition-colors"
               data-testid="input-profile-photo"
             />
           </div>
@@ -233,7 +233,7 @@ export default function UserForm({ user, onClose }: UserFormProps) {
               type="file"
               accept=".pdf,.jpg,.jpeg,.png"
               onChange={(e) => handleChange("idDocument", e.target.files?.[0] || null)}
-              className="bg-slate-800/50 border-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+              className="w-full bg-slate-800/50 border-slate-700 text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-600 file:text-white file:cursor-pointer hover:file:bg-indigo-700 file:transition-colors"
               data-testid="input-id-document"
             />
           </div>
