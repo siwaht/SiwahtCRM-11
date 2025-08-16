@@ -1,10 +1,21 @@
+import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import { Bell, LogOut, User } from "lucide-react";
 import siwatLogoPath from "@assets/siwath_logo_withoutbackground_1755357359703.png";
 
 export default function Header() {
   const { user, logout } = useAuth();
+  const { toast } = useToast();
+  const [notificationCount] = useState(3);
+
+  const handleNotifications = () => {
+    toast({
+      title: "Notifications",
+      description: `You have ${notificationCount} new notifications. Full notification system coming soon!`,
+    });
+  };
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-sm bg-slate-900/80 border-b border-slate-700/50">
@@ -31,10 +42,16 @@ export default function Header() {
             <Button
               variant="ghost"
               size="sm"
-              className="p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
+              onClick={handleNotifications}
+              className="p-2 hover:bg-slate-800/50 rounded-lg transition-colors relative"
               data-testid="button-notifications"
             >
               <Bell className="h-5 w-5 text-slate-400" />
+              {notificationCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                  {notificationCount}
+                </span>
+              )}
             </Button>
             
             {/* User Profile */}
