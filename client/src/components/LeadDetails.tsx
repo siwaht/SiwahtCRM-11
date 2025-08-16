@@ -699,11 +699,12 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     storageLimit={storageInfo?.storageLimit || 524288000}
                     onGetUploadParameters={async () => {
                       try {
-                        const response = await apiRequest("POST", "/api/objects/upload") as any;
-                        console.log('Upload response:', response);
+                        const response = await apiRequest("POST", "/api/objects/upload");
+                        const data = await response.json();
+                        console.log('Upload response data:', data);
                         return {
                           method: "PUT" as const,
-                          url: response.uploadURL || response.url
+                          url: data.uploadURL || data.url
                         };
                       } catch (error) {
                         console.error('Error getting upload URL:', error);
