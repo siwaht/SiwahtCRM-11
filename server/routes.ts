@@ -9,6 +9,8 @@ import { insertUserSchema, insertLeadSchema, insertProductSchema, insertInteract
 import type { DatabaseExport } from './storage';
 import { triggerWebhooks } from './webhooks';
 import { setupMcpServer } from './ai-agent-integration';
+import { ObjectStorageService, ObjectNotFoundError } from './objectStorage';
+import { ObjectPermission } from './objectAcl';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -588,6 +590,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Database deletion error:', error);
       res.status(500).json({ message: 'Failed to clear database' });
+    }
+  });
+
+  // Object Storage Routes
+  // Endpoint for getting the upload URL for file uploads
+  app.post('/api/objects/upload', requireAuth, async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ 
+        method: 'PUT',
+        url: uploadURL 
+      });
+    } catch (error) {
+      console.error('Error getting upload URL:', error);
+      res.status(500).json({ error: 'Failed to get upload URL' });
+    }
+  });
+
+  // Endpoint for serving private objects with ACL check
+  app.get('/objects/:objectPath(*)', requireAuth, async (req, res) => {
+    const userId = req.session?.user?.id?.toString();
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      const canAccess = await objectStorageService.canAccessObjectEntity({
+        objectFile,
+        userId: userId,
+        requestedPermission: ObjectPermission.READ,
+      });
+      if (!canAccess) {
+        return res.sendStatus(401);
+      }
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error('Error checking object access:', error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
+  // Endpoint for updating file metadata after upload
+  app.put('/api/lead-attachments', requireAuth, async (req, res) => {
+    if (!req.body.fileURL || !req.body.leadId) {
+      return res.status(400).json({ error: 'fileURL and leadId are required' });
+    }
+
+    const userId = req.session?.user?.id?.toString();
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
+        req.body.fileURL,
+        {
+          owner: userId,
+          visibility: "private", // Lead attachments should be private
+        }
+      );
+
+      // Here you could also save file metadata to the database if needed
+      // For now, just return success
+      res.json({
+        success: true,
+        objectPath: objectPath,
+        message: 'File uploaded successfully'
+      });
+    } catch (error) {
+      console.error('Error setting file ACL:', error);
+      res.status(500).json({ error: 'Failed to process file upload' });
     }
   });
 

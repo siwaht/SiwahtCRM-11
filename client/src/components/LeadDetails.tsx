@@ -9,6 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ObjectUploader } from "./ObjectUploader";
+import type { UploadResult } from "@uppy/core";
 import { 
   X, 
   MessageSquare, 
@@ -595,13 +597,38 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     className="bg-slate-800/50 border-slate-700 text-slate-200"
                     data-testid="input-file-description"
                   />
-                  <Button 
-                    className="bg-green-600 hover:bg-green-700 px-6"
-                    data-testid="button-upload-files"
+                  <ObjectUploader
+                    maxNumberOfFiles={5}
+                    maxFileSize={10485760} // 10MB
+                    onGetUploadParameters={async () => {
+                      const response = await apiRequest("POST", "/api/objects/upload");
+                      return response;
+                    }}
+                    onComplete={async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                      // Handle successful upload
+                      for (const file of result.successful) {
+                        try {
+                          await apiRequest("PUT", "/api/lead-attachments", {
+                            fileURL: file.uploadURL,
+                            leadId: lead.id,
+                            fileName: file.name,
+                            fileSize: file.size
+                          });
+                        } catch (error) {
+                          console.error('Error setting file metadata:', error);
+                        }
+                      }
+                      
+                      toast({
+                        title: "Success",
+                        description: `${result.successful.length} file(s) uploaded successfully`,
+                      });
+                    }}
+                    buttonClassName="bg-green-600 hover:bg-green-700 px-6"
                   >
                     <Upload className="h-4 w-4 mr-2" />
                     Upload
-                  </Button>
+                  </ObjectUploader>
                 </div>
               </div>
             </CardContent>
