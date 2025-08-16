@@ -310,7 +310,7 @@ export class DatabaseStorage implements IStorage {
               .where(eq(leads.assignedEngineer, engineer.id));
             return {
               engineerId: engineer.id,
-              count: result?.count || 0
+              count: Number(result?.count) || 0
             };
           })
         );
@@ -360,7 +360,7 @@ export class DatabaseStorage implements IStorage {
               .where(eq(leads.assignedEngineer, engineer.id));
             return {
               engineerId: engineer.id,
-              count: result?.count || 0
+              count: Number(result?.count) || 0
             };
           })
         );
