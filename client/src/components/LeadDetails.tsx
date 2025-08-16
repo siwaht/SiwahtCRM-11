@@ -670,11 +670,17 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     storageUsed={storageInfo?.storageUsed || 0}
                     storageLimit={storageInfo?.storageLimit || 524288000}
                     onGetUploadParameters={async () => {
-                      const response = await apiRequest("POST", "/api/objects/upload");
-                      return {
-                        method: "PUT" as const,
-                        url: (response as any).uploadURL
-                      };
+                      try {
+                        const response = await apiRequest("POST", "/api/objects/upload") as any;
+                        console.log('Upload response:', response);
+                        return {
+                          method: "PUT" as const,
+                          url: response.uploadURL || response.url
+                        };
+                      } catch (error) {
+                        console.error('Error getting upload URL:', error);
+                        throw new Error('Failed to get upload URL');
+                      }
                     }}
                     onComplete={async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
                       // Handle successful upload
@@ -722,6 +728,14 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                         title: "Success",
                         description: `${result.successful?.length || 0} file(s) uploaded successfully`,
                       });
+                      
+                      // Auto-close uploader after successful upload
+                      setTimeout(() => {
+                        const closeButton = document.querySelector('.uppy-Dashboard-close');
+                        if (closeButton) {
+                          (closeButton as HTMLElement).click();
+                        }
+                      }, 1000);
                     }}
                     buttonClassName="bg-green-600 hover:bg-green-700 px-6"
                   >

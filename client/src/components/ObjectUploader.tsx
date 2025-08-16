@@ -81,10 +81,39 @@ export function ObjectUploader({
     
     uppyInstance.on("complete", (result) => {
       onComplete?.(result);
+      // Auto-hide uploader after successful upload
+      if (result.successful && result.successful.length > 0) {
+        setTimeout(() => setShowUploader(false), 1500);
+      }
+    });
+    
+    uppyInstance.on("upload-error", (file, error) => {
+      console.error('Upload error:', error);
     });
     
     return uppyInstance;
   });
+
+  // Close uploader when clicking outside or pressing Escape
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setShowUploader(false);
+    }
+  };
+
+  // Handle escape key to close
+  React.useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showUploader) {
+        setShowUploader(false);
+      }
+    };
+    
+    if (showUploader) {
+      document.addEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
+    }
+  }, [showUploader]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -131,17 +160,36 @@ export function ObjectUploader({
       )}
 
       {showUploader && (
-        <div className="mt-4 border border-slate-600 rounded-lg overflow-hidden">
-          <Dashboard
-            uppy={uppy}
-            proudlyDisplayPoweredByUppy={false}
-            height={350}
-            showProgressDetails={true}
-            hideUploadButton={false}
-            hideCancelButton={false}
-            hideRetryButton={false}
-            hidePauseResumeButton={false}
-          />
+        <div 
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={handleBackdropClick}
+        >
+          <div 
+            className="bg-slate-800 rounded-lg border border-slate-600 w-full max-w-2xl max-h-[80vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-700">
+              <h3 className="text-white font-medium">Upload Files</h3>
+              <button
+                onClick={() => setShowUploader(false)}
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <Dashboard
+                uppy={uppy}
+                proudlyDisplayPoweredByUppy={false}
+                height={400}
+                showProgressDetails={true}
+                hideUploadButton={false}
+                hideCancelButton={false}
+                hideRetryButton={false}
+                hidePauseResumeButton={false}
+              />
+            </div>
+          </div>
         </div>
       )}
     </div>
