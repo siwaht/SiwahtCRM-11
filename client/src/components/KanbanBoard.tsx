@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,6 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Plus, MoreVertical, Paperclip, MessageSquare, Calendar, File, CheckCircle, Phone } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
 import type { Lead } from "@shared/schema";
+import LeadDetails from "./LeadDetails";
 
 const statusConfig = {
   new: { label: "New", color: "bg-slate-500", count: 0 },
@@ -19,6 +21,7 @@ const statusConfig = {
 };
 
 export default function KanbanBoard() {
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -160,6 +163,11 @@ export default function KanbanBoard() {
                                     snapshot.isDragging ? "shadow-xl rotate-3" : ""
                                   }`}
                                   data-testid={`card-lead-${lead.id}`}
+                                  onDoubleClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setSelectedLead(lead);
+                                  }}
                                 >
                                   {/* Card Header */}
                                   <div className="flex items-start justify-between mb-2 gap-2">
@@ -207,6 +215,14 @@ export default function KanbanBoard() {
           })}
         </div>
       </DragDropContext>
+      
+      {/* Lead Details Modal */}
+      {selectedLead && (
+        <LeadDetails 
+          lead={selectedLead} 
+          onClose={() => setSelectedLead(null)} 
+        />
+      )}
     </div>
   );
 }
