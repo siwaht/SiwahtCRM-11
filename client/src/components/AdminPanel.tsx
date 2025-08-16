@@ -17,8 +17,9 @@ import {
   Trash2,
   TestTube
 } from "lucide-react";
-import UserForm from "./UserForm";
-import WebhookForm from "./WebhookForm";
+// Import components when needed
+// import UserForm from "./UserForm";
+// import WebhookForm from "./WebhookForm";
 import type { User, Webhook as WebhookType } from "@shared/schema";
 
 export default function AdminPanel() {
@@ -33,7 +34,7 @@ export default function AdminPanel() {
   console.log('AdminPanel rendering...');
 
   // Users queries and mutations
-  const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery({
+  const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
 
@@ -42,7 +43,7 @@ export default function AdminPanel() {
   console.log('Users error:', usersError);
 
   // Webhooks queries and mutations
-  const { data: webhooks = [], isLoading: webhooksLoading, error: webhooksError } = useQuery({
+  const { data: webhooks = [], isLoading: webhooksLoading, error: webhooksError } = useQuery<WebhookType[]>({
     queryKey: ["/api/webhooks"],
   });
 
@@ -99,10 +100,7 @@ export default function AdminPanel() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-white">User Management</h3>
               <Button
-                onClick={() => {
-                  setEditingUser(null);
-                  setShowUserForm(true);
-                }}
+                onClick={() => alert('Add user functionality coming soon')}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
                 <UserPlus className="h-4 w-4 mr-2" />
@@ -116,7 +114,7 @@ export default function AdminPanel() {
               <p className="text-slate-400">No users found</p>
             ) : (
               <div className="space-y-3">
-                {users.map((user: User) => (
+                {users.map((user) => (
                   <div key={user.id} className="flex items-center justify-between p-4 bg-slate-800/50 rounded-lg">
                     <div>
                       <p className="font-medium text-white">{user.name}</p>
@@ -126,14 +124,11 @@ export default function AdminPanel() {
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
-                        onClick={() => {
-                          setEditingUser(user);
-                          setShowUserForm(true);
-                        }}
+                        onClick={() => alert('Edit user functionality coming soon')}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="destructive">
+                      <Button size="sm" variant="destructive" onClick={() => alert('Delete user functionality coming soon')}>
                         <Ban className="h-4 w-4" />
                       </Button>
                     </div>
@@ -149,10 +144,7 @@ export default function AdminPanel() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-white">Webhook Configuration</h3>
               <Button
-                onClick={() => {
-                  setEditingWebhook(null);
-                  setShowWebhookForm(true);
-                }}
+                onClick={() => alert('Add webhook functionality coming soon')}
                 className="bg-indigo-600 hover:bg-indigo-700"
               >
                 <Plus className="h-4 w-4 mr-2" />
@@ -166,7 +158,7 @@ export default function AdminPanel() {
               <p className="text-slate-400">No webhooks configured</p>
             ) : (
               <div className="space-y-3">
-                {webhooks.map((webhook: WebhookType) => (
+                {webhooks.map((webhook) => (
                   <div key={webhook.id} className="p-4 bg-slate-800/50 rounded-lg">
                     <div className="flex items-center justify-between">
                       <div>
@@ -175,19 +167,16 @@ export default function AdminPanel() {
                         <Badge className="mt-1">{webhook.isActive ? "Active" : "Inactive"}</Badge>
                       </div>
                       <div className="flex space-x-2">
-                        <Button size="sm">
+                        <Button size="sm" onClick={() => alert('Test webhook functionality coming soon')}>
                           <TestTube className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"
-                          onClick={() => {
-                            setEditingWebhook(webhook);
-                            setShowWebhookForm(true);
-                          }}
+                          onClick={() => alert('Edit webhook functionality coming soon')}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="destructive">
+                        <Button size="sm" variant="destructive" onClick={() => alert('Delete webhook functionality coming soon')}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -210,26 +199,7 @@ export default function AdminPanel() {
         )}
       </div>
 
-      {/* Forms */}
-      {showUserForm && (
-        <UserForm
-          user={editingUser}
-          onClose={() => {
-            setShowUserForm(false);
-            setEditingUser(null);
-          }}
-        />
-      )}
-
-      {showWebhookForm && (
-        <WebhookForm
-          webhook={editingWebhook}
-          onClose={() => {
-            setShowWebhookForm(false);
-            setEditingWebhook(null);
-          }}
-        />
-      )}
+      {/* Forms will be added later */}
     </div>
   );
 }
