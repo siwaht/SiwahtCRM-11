@@ -6,6 +6,7 @@ import {
   interactions, 
   webhooks, 
   leadAttachments, 
+  leadProducts,
   mcpServers,
   type User, 
   type InsertUser, 
@@ -19,6 +20,8 @@ import {
   type InsertWebhook,
   type LeadAttachment, 
   type InsertLeadAttachment,
+  type LeadProduct,
+  type InsertLeadProduct,
   type McpServer, 
   type InsertMcpServer 
 } from "@shared/schema";
@@ -47,12 +50,19 @@ export interface IStorage {
 
   // Leads
   getLead(id: number): Promise<Lead | undefined>;
+  getLeadWithProducts(id: number): Promise<Lead & { products: Product[] } | undefined>;
   getAllLeads(filters?: LeadFilters): Promise<Lead[]>;
-  createLead(lead: InsertLead): Promise<Lead>;
-  updateLead(id: number, lead: Partial<InsertLead>): Promise<Lead | undefined>;
+  createLead(lead: InsertLead, productIds?: number[]): Promise<Lead>;
+  updateLead(id: number, lead: Partial<InsertLead>, productIds?: number[]): Promise<Lead | undefined>;
   deleteLead(id: number): Promise<boolean>;
   getLeadsByStatus(status: string): Promise<Lead[]>;
   getLeadsByAssignee(userId: number): Promise<Lead[]>;
+  
+  // Lead Products
+  getLeadProducts(leadId: number): Promise<Product[]>;
+  addLeadProducts(leadId: number, productIds: number[]): Promise<void>;
+  removeLeadProducts(leadId: number): Promise<void>;
+  updateLeadProducts(leadId: number, productIds: number[]): Promise<void>;
 
   // Interactions
   getInteraction(id: number): Promise<Interaction | undefined>;
@@ -119,6 +129,7 @@ export interface DatabaseExport {
     interactions: Interaction[];
     webhooks: Webhook[];
     leadAttachments: LeadAttachment[];
+    leadProducts: LeadProduct[];
     mcpServers: McpServer[];
   };
 }
@@ -235,6 +246,21 @@ export class DatabaseStorage implements IStorage {
     return lead || undefined;
   }
 
+  async getLeadWithProducts(id: number): Promise<Lead & { products: Product[] } | undefined> {
+    const [lead] = await db.select().from(leads).where(eq(leads.id, id));
+    if (!lead) return undefined;
+    
+    const leadProductsData = await db
+      .select({ product: products })
+      .from(leadProducts)
+      .innerJoin(products, eq(leadProducts.productId, products.id))
+      .where(eq(leadProducts.leadId, id));
+    
+    const productsList = leadProductsData.map(item => item.product);
+    
+    return { ...lead, products: productsList };
+  }
+
   async getAllLeads(filters?: LeadFilters): Promise<Lead[]> {
     let query = db.select().from(leads);
     const conditions = [];
@@ -268,7 +294,7 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(leads).orderBy(desc(leads.createdAt));
   }
 
-  async createLead(insertLead: InsertLead): Promise<Lead> {
+  async createLead(insertLead: InsertLead, productIds?: number[]): Promise<Lead> {
     // Auto-assign engineer if not already assigned
     if (!insertLead.assignedEngineer) {
       const engineers = await this.getAvailableEngineers();
@@ -297,11 +323,23 @@ export class DatabaseStorage implements IStorage {
     }
     
     const [lead] = await db.insert(leads).values(insertLead).returning();
+    
+    // Add products if provided
+    if (productIds && productIds.length > 0) {
+      await this.addLeadProducts(lead.id, productIds);
+    }
+    
     return lead;
   }
 
-  async updateLead(id: number, updateData: Partial<InsertLead>): Promise<Lead | undefined> {
+  async updateLead(id: number, updateData: Partial<InsertLead>, productIds?: number[]): Promise<Lead | undefined> {
     const [lead] = await db.update(leads).set(updateData).where(eq(leads.id, id)).returning();
+    
+    // Update products if provided
+    if (productIds !== undefined) {
+      await this.updateLeadProducts(id, productIds);
+    }
+    
     return lead || undefined;
   }
 
@@ -507,6 +545,7 @@ export class DatabaseStorage implements IStorage {
         interactions: interactionsData,
         webhooks: webhooksData,
         leadAttachments: attachmentsData,
+        leadProducts: await db.select().from(leadProducts),
         mcpServers: mcpServersData
       }
     };
@@ -569,6 +608,13 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
+      if (data.data.leadProducts?.length > 0) {
+        for (const leadProduct of data.data.leadProducts) {
+          const { id, createdAt, ...insertData } = leadProduct;
+          await db.insert(leadProducts).values(insertData);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Database import failed:', error);
@@ -581,6 +627,7 @@ export class DatabaseStorage implements IStorage {
       // Delete in reverse order of dependencies
       await db.delete(leadAttachments);
       await db.delete(interactions);
+      await db.delete(leadProducts);
       await db.delete(leads);
       await db.delete(webhooks);
       await db.delete(mcpServers);
@@ -590,6 +637,43 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Database deletion failed:', error);
       return false;
+    }
+  }
+
+  // Lead Products
+  async getLeadProducts(leadId: number): Promise<Product[]> {
+    const leadProductsData = await db
+      .select({ product: products })
+      .from(leadProducts)
+      .innerJoin(products, eq(leadProducts.productId, products.id))
+      .where(eq(leadProducts.leadId, leadId))
+      .orderBy(asc(products.displayOrder), asc(products.name));
+    
+    return leadProductsData.map(item => item.product);
+  }
+
+  async addLeadProducts(leadId: number, productIds: number[]): Promise<void> {
+    if (productIds.length === 0) return;
+    
+    const insertData = productIds.map(productId => ({
+      leadId,
+      productId
+    }));
+    
+    await db.insert(leadProducts).values(insertData);
+  }
+
+  async removeLeadProducts(leadId: number): Promise<void> {
+    await db.delete(leadProducts).where(eq(leadProducts.leadId, leadId));
+  }
+
+  async updateLeadProducts(leadId: number, productIds: number[]): Promise<void> {
+    // Remove existing products
+    await this.removeLeadProducts(leadId);
+    
+    // Add new products
+    if (productIds.length > 0) {
+      await this.addLeadProducts(leadId, productIds);
     }
   }
 }

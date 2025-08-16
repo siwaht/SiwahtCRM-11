@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import * as React from "react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { X } from "lucide-react";
-import type { Lead, InsertLead } from "@shared/schema";
+import { X, Calendar } from "lucide-react";
+import type { Lead, InsertLead, Product } from "@shared/schema";
 
 interface LeadFormProps {
   lead?: Lead | null;
@@ -26,10 +28,22 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
     source: lead?.source || "",
     value: lead?.value || undefined,
     assignedTo: lead?.assignedTo || undefined,
-    assignedProduct: lead?.assignedProduct || undefined,
     notes: lead?.notes || "",
     priority: lead?.priority || "medium",
+    tags: lead?.tags || [],
+    followUpDate: lead?.followUpDate ? lead?.followUpDate.toISOString().split('T')[0] : "",
   });
+  
+  const [selectedProducts, setSelectedProducts] = useState<number[]>(
+    leadWithProducts?.products?.map(p => p.id) || []
+  );
+  
+  // Update selected products when leadWithProducts changes
+  React.useEffect(() => {
+    if (leadWithProducts?.products) {
+      setSelectedProducts(leadWithProducts.products.map(p => p.id));
+    }
+  }, [leadWithProducts]);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -38,12 +52,18 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
     queryKey: ["/api/users"],
   });
 
-  const { data: products = [] } = useQuery<any[]>({
+  const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+  });
+  
+  // Load existing lead products when editing
+  const { data: leadWithProducts } = useQuery<Lead & { products: Product[] }>({
+    queryKey: ["/api/leads", lead?.id, "with-products"],
+    enabled: !!lead?.id,
   });
 
   const mutation = useMutation({
-    mutationFn: async (data: Partial<InsertLead>) => {
+    mutationFn: async (data: Partial<InsertLead> & { productIds: number[] }) => {
       if (lead) {
         return await apiRequest("PUT", `/api/leads/${lead.id}`, data);
       } else {
@@ -69,7 +89,28 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    const submitData = {
+      ...formData,
+      productIds: selectedProducts,
+      followUpDate: formData.followUpDate ? new Date(formData.followUpDate) : null,
+      tags: formData.tags || []
+    };
+    mutation.mutate(submitData);
+  };
+  
+  const handleTagsChange = (value: string) => {
+    const tags = value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+    setFormData(prev => ({ ...prev, tags }));
+  };
+  
+  const handleProductToggle = (productId: number, checked: boolean) => {
+    setSelectedProducts(prev => {
+      if (checked) {
+        return [...prev, productId];
+      } else {
+        return prev.filter(id => id !== productId);
+      }
+    });
   };
 
   const handleChange = (field: keyof InsertLead, value: any) => {
@@ -210,23 +251,69 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
             </div>
 
             <div>
-              <Label htmlFor="assignedProduct" className="text-slate-300">Product</Label>
-              <Select 
-                value={formData.assignedProduct?.toString() || ""} 
-                onValueChange={(value) => handleChange("assignedProduct", value ? parseInt(value) : undefined)}
-              >
-                <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-product">
-                  <SelectValue placeholder="Select product" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="none">No product</SelectItem>
-                  {products.map((product: any) => (
-                    <SelectItem key={product.id} value={product.id.toString()}>
-                      {product.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="tags" className="text-slate-300">Tags</Label>
+              <Input
+                id="tags"
+                value={(formData.tags || []).join(', ')}
+                onChange={(e) => handleTagsChange(e.target.value)}
+                placeholder="e.g., urgent, follow-up, hot-lead"
+                className="mt-1 bg-slate-800/50 border-slate-700"
+                data-testid="input-tags"
+              />
+              <p className="text-xs text-slate-400 mt-1">Separate tags with commas</p>
+            </div>
+
+            <div>
+              <Label htmlFor="followUpDate" className="text-slate-300">Follow-up Date</Label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
+                <Input
+                  id="followUpDate"
+                  type="date"
+                  value={formData.followUpDate || ""}
+                  onChange={(e) => handleChange("followUpDate", e.target.value)}
+                  className="mt-1 bg-slate-800/50 border-slate-700 pl-10"
+                  data-testid="input-follow-up-date"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="col-span-full">
+            <Label className="text-slate-300 mb-3 block">Interested Products</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4 bg-slate-900/50 border border-slate-700/50 rounded-lg">
+              {products.length === 0 ? (
+                <p className="text-slate-400 text-sm col-span-full">No products available</p>
+              ) : (
+                products.map((product: Product) => (
+                  <div key={product.id} className="flex items-start space-x-3 p-2 hover:bg-slate-800/50 rounded">
+                    <Checkbox
+                      id={`product-${product.id}`}
+                      checked={selectedProducts.includes(product.id)}
+                      onCheckedChange={(checked) => handleProductToggle(product.id, checked as boolean)}
+                      data-testid={`checkbox-product-${product.id}`}
+                    />
+                    <div className="flex-1">
+                      <Label
+                        htmlFor={`product-${product.id}`}
+                        className="text-sm font-medium text-slate-200 cursor-pointer"
+                      >
+                        {product.name}
+                      </Label>
+                      <p className="text-xs text-slate-400 mt-1">{product.price}</p>
+                      {product.priority && (
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${
+                          product.priority === 'High' ? 'bg-red-900/50 text-red-300' :
+                          product.priority === 'Medium' ? 'bg-yellow-900/50 text-yellow-300' :
+                          'bg-green-900/50 text-green-300'
+                        }`}>
+                          {product.priority} Priority
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -237,7 +324,8 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
               value={formData.notes || ""}
               onChange={(e) => handleChange("notes", e.target.value)}
               className="mt-1 bg-slate-800/50 border-slate-700"
-              rows={3}
+              rows={4}
+              placeholder="Any additional notes about this lead..."
               data-testid="textarea-notes"
             />
           </div>

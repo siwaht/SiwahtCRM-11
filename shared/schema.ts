@@ -54,13 +54,22 @@ export const leads = pgTable('leads', {
   value: real('value'),
   assignedTo: integer('assigned_to').references(() => users.id),
   assignedEngineer: integer('assigned_engineer').references(() => users.id),
-  assignedProduct: integer('assigned_product').references(() => products.id),
   notes: text('notes'),
   priority: text('priority', { enum: ['low', 'medium', 'high'] }).default('medium'),
   score: integer('score').default(0),
   engineeringProgress: integer('engineering_progress').default(0),
   engineeringNotes: text('engineering_notes'),
+  tags: text('tags').array(),
+  followUpDate: timestamp('follow_up_date'),
   lastContactedAt: timestamp('last_contacted_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Lead-Product Junction Table (Many-to-Many)
+export const leadProducts = pgTable('lead_products', {
+  id: serial('id').primaryKey(),
+  leadId: integer('lead_id').references(() => leads.id, { onDelete: 'cascade' }).notNull(),
+  productId: integer('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -117,7 +126,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 }));
 
 export const productsRelations = relations(products, ({ many }) => ({
-  leads: many(leads),
+  leadProducts: many(leadProducts),
 }));
 
 export const leadsRelations = relations(leads, ({ one, many }) => ({
@@ -131,12 +140,20 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
     references: [users.id],
     relationName: 'assignedEngineer',
   }),
-  product: one(products, {
-    fields: [leads.assignedProduct],
-    references: [products.id],
-  }),
+  leadProducts: many(leadProducts),
   interactions: many(interactions),
   attachments: many(leadAttachments),
+}));
+
+export const leadProductsRelations = relations(leadProducts, ({ one }) => ({
+  lead: one(leads, {
+    fields: [leadProducts.leadId],
+    references: [leads.id],
+  }),
+  product: one(products, {
+    fields: [leadProducts.productId],
+    references: [products.id],
+  }),
 }));
 
 export const interactionsRelations = relations(interactions, ({ one }) => ({
@@ -194,6 +211,11 @@ export const insertLeadAttachmentSchema = createInsertSchema(leadAttachments).om
   createdAt: true,
 });
 
+export const insertLeadProductSchema = createInsertSchema(leadProducts).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertMcpServerSchema = createInsertSchema(mcpServers).omit({
   id: true,
   createdAt: true,
@@ -212,5 +234,7 @@ export type Webhook = typeof webhooks.$inferSelect;
 export type InsertWebhook = z.infer<typeof insertWebhookSchema>;
 export type LeadAttachment = typeof leadAttachments.$inferSelect;
 export type InsertLeadAttachment = z.infer<typeof insertLeadAttachmentSchema>;
+export type LeadProduct = typeof leadProducts.$inferSelect;
+export type InsertLeadProduct = z.infer<typeof insertLeadProductSchema>;
 export type McpServer = typeof mcpServers.$inferSelect;
 export type InsertMcpServer = z.infer<typeof insertMcpServerSchema>;

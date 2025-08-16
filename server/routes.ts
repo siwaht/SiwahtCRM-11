@@ -647,7 +647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         value: lead.value || '',
         assignedTo: lead.assignedTo || '',
         assignedEngineer: lead.assignedEngineer || '',
-        assignedProduct: lead.assignedProduct || '',
+        // Products handled separately in new many-to-many relationship
         notes: lead.notes || '',
         priority: lead.priority,
         score: lead.score,
@@ -720,7 +720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             value: row.value ? parseFloat(row.value) : null,
             assignedTo: row.assignedTo ? parseInt(row.assignedTo) : null,
             assignedEngineer: row.assignedEngineer ? parseInt(row.assignedEngineer) : null,
-            assignedProduct: row.assignedProduct ? parseInt(row.assignedProduct) : null,
+            // Products handled separately in new many-to-many relationship
             notes: row.notes?.trim() || null,
             priority: (row.priority?.trim() || 'medium') as any,
             score: row.score ? parseInt(row.score) : 0,
