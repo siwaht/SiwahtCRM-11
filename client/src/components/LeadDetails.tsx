@@ -376,7 +376,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
           <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
               <div className="space-y-1">
-                <span className="text-slate-400 text-xs uppercase tracking-wider">Status</span>
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Status: </span>
                 <Badge className={`${getStatusColor(lead.status)} border text-xs px-2 py-1 w-fit`}>
                   {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 ? 'In Development' : lead.status}
                 </Badge>
