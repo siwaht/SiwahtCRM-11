@@ -729,7 +729,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fileName: req.body.fileName || 'Uploaded file',
         filePath: objectPath,
         uploadedById: userId,
-        fileSize: fileSize
+        fileSize: fileSize,
+        description: req.body.description || null
       });
 
       res.json({

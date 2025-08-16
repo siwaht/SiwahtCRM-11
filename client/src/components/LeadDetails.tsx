@@ -726,7 +726,15 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                           <FileText className="h-3 w-3 text-slate-400 flex-shrink-0" />
                           <div className="min-w-0 flex-1">
                             <span className="text-xs text-slate-200 truncate block">{attachment.fileName}</span>
-                            <span className="text-xs text-slate-500">{formatFileSize(attachment.fileSize || 0)}</span>
+                            <div className="flex items-center gap-2 text-xs text-slate-500">
+                              <span>{formatFileSize(attachment.fileSize || 0)}</span>
+                              {attachment.description && (
+                                <>
+                                  <span>•</span>
+                                  <span className="truncate">{attachment.description}</span>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex items-center gap-1 flex-shrink-0">
@@ -794,7 +802,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                         fileURL: file.uploadURL,
                         leadId: lead.id,
                         fileName: file.name,
-                        fileSize: file.size
+                        fileSize: file.size,
+                        description: fileDescription.trim() || null
                       });
                     } catch (error) {
                       console.error('Error setting file metadata:', error);
@@ -805,29 +814,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                   queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
                   queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
                   
-                  // Create interaction if description provided or quick action selected
-                  if (fileDescription.trim() || selectedQuickAction) {
-                    const interactionText = fileDescription.trim() 
-                      ? (selectedQuickAction 
-                          ? `[${selectedQuickAction.toUpperCase()}] Uploaded file(s): ${fileDescription}` 
-                          : `Uploaded file(s): ${fileDescription}`)
-                      : `[${selectedQuickAction?.toUpperCase()}] Uploaded file(s)`;
-                    
-                    const interactionType = selectedQuickAction || "note";
-                    
-                    try {
-                      await apiRequest("POST", `/api/leads/${lead.id}/interactions`, {
-                        type: interactionType,
-                        text: interactionText
-                      });
-                      
-                      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/interactions`] });
-                      setSelectedQuickAction(null);
-                      setFileDescription("");
-                    } catch (error) {
-                      console.error('Error creating interaction:', error);
-                    }
-                  }
+                  // Clear form after successful upload
+                  setSelectedQuickAction(null);
+                  setFileDescription("");
                   
                   toast({
                     title: "Success",

@@ -94,6 +94,7 @@ export const leadAttachments = pgTable('lead_attachments', {
   fileName: text('file_name').notNull(),
   filePath: text('file_path').notNull(),
   fileSize: integer('file_size').default(0),
+  description: text('description'), // Optional description/comment for the file
   uploadedById: integer('uploaded_by_id').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

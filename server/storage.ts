@@ -32,7 +32,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   updateUserStorage(userId: number, storageUsed: number): Promise<void>;
-  addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number }): Promise<void>;
+  addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number; description?: string | null }): Promise<void>;
   getAllUsers(): Promise<User[]>;
   deleteUser(id: number): Promise<boolean>;
 
@@ -170,14 +170,15 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number }): Promise<void> {
+  async addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number; description?: string | null }): Promise<void> {
     try {
       await db.insert(leadAttachments).values({
         leadId: attachment.leadId,
         fileName: attachment.fileName,
         filePath: attachment.filePath,
         fileSize: attachment.fileSize,
-        uploadedById: attachment.uploadedById
+        uploadedById: attachment.uploadedById,
+        description: attachment.description
       });
     } catch (error) {
       console.error('Add lead attachment error:', error);
