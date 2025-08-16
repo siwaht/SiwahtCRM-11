@@ -1,6 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import { pool } from './db';
 import { storage } from "./storage";
 import { login, logout, getCurrentUser, requireAuth, requireRole, hashPassword } from './auth-simple';
 import { insertUserSchema, insertLeadSchema, insertProductSchema, insertInteractionSchema, insertWebhookSchema } from '@shared/schema';
@@ -24,15 +26,23 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Session middleware
+  // Setup PostgreSQL session store
+  const PostgreSqlStore = connectPgSimple(session);
+  
+  // Session middleware with PostgreSQL store
   app.use(session({
+    store: new PostgreSqlStore({
+      pool: pool,
+      tableName: 'session',
+      createTableIfMissing: true,
+    }),
     secret: process.env.SESSION_SECRET || 'your-secret-key-dev-12345',
     resave: false,
     saveUninitialized: false,
-    name: 'siwaht.sid', // Custom session name
+    name: 'siwaht.sid',
     cookie: {
       httpOnly: true,
-      secure: false, // Always false for development since we're not using HTTPS
+      secure: false,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax',
       path: '/'
