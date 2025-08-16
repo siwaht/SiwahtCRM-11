@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -180,9 +181,15 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   };
 
   const getAssigneeName = (assignedTo: number | null) => {
-    if (!assignedTo) return "Admin User";
+    if (!assignedTo) return "Unassigned";
     const user = users.find((u: any) => u.id === assignedTo);
-    return user ? user.name : "Admin User";
+    return user ? user.name : "Unknown";
+  };
+
+  const getEngineerName = (assignedEngineer: number | null) => {
+    if (!assignedEngineer) return "Unassigned";
+    const user = users.find((u: any) => u.id === assignedEngineer);
+    return user ? user.name : "Unknown";
   };
 
   const handleAddInteraction = () => {
@@ -330,16 +337,27 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
               <span className="text-xs text-slate-400 block mb-1">Source:</span>
               <span className="text-slate-300">{lead.source || 'Website'}</span>
             </div>
+            <div>
+              <span className="text-xs text-slate-400 block mb-1">Assigned Agent:</span>
+              <span className="text-slate-300">{getAssigneeName(lead.assignedTo)}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <span className="text-xs text-slate-400 block mb-1">Assigned Engineer:</span>
+              <span className="text-slate-300">{getEngineerName(lead.assignedEngineer)}</span>
+            </div>
           </div>
 
           {/* Engineering Progress */}
-          {(lead.engineeringProgress || 0) > 0 && (
+          {lead.assignedEngineer && lead.status === 'won' && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-slate-300">Engineering Progress:</span>
-                <span className="text-blue-400 font-medium">{lead.engineeringProgress}%</span>
+                <span className="text-blue-400 font-medium">{lead.engineeringProgress || 0}%</span>
               </div>
-              <Progress value={lead.engineeringProgress || 0} className="w-full h-2" />
+              <Progress value={lead.engineeringProgress || 0} className="w-full h-3 bg-slate-700" />
             </div>
           )}
 
