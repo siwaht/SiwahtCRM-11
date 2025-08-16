@@ -20,7 +20,7 @@ import {
   Upload,
   AlertTriangle
 } from "lucide-react";
-import type { User, Webhook as WebhookType } from "@shared/schema";
+import type { User, Webhook as WebhookType, Product, Lead } from "@shared/schema";
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("users");
@@ -39,6 +39,15 @@ export default function AdminPanel() {
   // Webhooks queries and mutations
   const { data: webhooks = [], isLoading: webhooksLoading, error: webhooksError } = useQuery<WebhookType[]>({
     queryKey: ["/api/webhooks"],
+  });
+
+  // Products and Leads queries for statistics
+  const { data: products = [] } = useQuery<Product[]>({
+    queryKey: ["/api/products"],
+  });
+
+  const { data: leads = [] } = useQuery<Lead[]>({
+    queryKey: ["/api/leads"],
   });
 
   const deleteWebhookMutation = useMutation({
@@ -507,23 +516,30 @@ export default function AdminPanel() {
             {/* Statistics */}
             <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
               <h4 className="font-medium text-white mb-3">Database Statistics</h4>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                 <div>
                   <p className="text-slate-400">Users:</p>
-                  <p className="text-white font-medium">{users.length}</p>
+                  <p className="text-white font-medium" data-testid="stat-users">{users.length}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Products:</p>
+                  <p className="text-white font-medium" data-testid="stat-products">{products.length}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Leads:</p>
+                  <p className="text-white font-medium" data-testid="stat-leads">{leads.length}</p>
                 </div>
                 <div>
                   <p className="text-slate-400">Webhooks:</p>
-                  <p className="text-white font-medium">{webhooks.length}</p>
+                  <p className="text-white font-medium" data-testid="stat-webhooks">{webhooks.length}</p>
                 </div>
                 <div>
                   <p className="text-slate-400">Status:</p>
-                  <Badge className="bg-emerald-500/20 text-emerald-400">Online</Badge>
+                  <Badge className="bg-emerald-500/20 text-emerald-400" data-testid="stat-status">Online</Badge>
                 </div>
-                <div>
-                  <p className="text-slate-400">Version:</p>
-                  <p className="text-white font-medium">1.0.0</p>
-                </div>
+              </div>
+              <div className="mt-4 text-xs text-slate-500">
+                Database Version: 1.0.0 • Last Updated: {new Date().toLocaleDateString()}
               </div>
             </div>
           </div>

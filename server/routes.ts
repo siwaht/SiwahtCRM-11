@@ -73,6 +73,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const hashedPassword = await hashPassword(userData.password);
       const user = await storage.createUser({ ...userData, password: hashedPassword });
       const { password: _, ...userWithoutPassword } = user;
+      
+      // Trigger webhooks
+      await triggerWebhooks('user.created', userWithoutPassword);
+      
       res.status(201).json(userWithoutPassword);
     } catch (error) {
       console.error('Create user error:', error);
@@ -95,6 +99,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const { password: _, ...userWithoutPassword } = user;
+      
+      // Trigger webhooks
+      await triggerWebhooks('user.updated', userWithoutPassword);
+      
       res.json(userWithoutPassword);
     } catch (error) {
       console.error('Update user error:', error);
@@ -105,10 +113,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/users/:id', requireRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Get user before deleting for webhook
+      const user = await storage.getUser(id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
       const success = await storage.deleteUser(id);
       if (!success) {
         return res.status(404).json({ message: 'User not found' });
       }
+      
+      const { password: _, ...userWithoutPassword } = user;
+      // Trigger webhooks
+      await triggerWebhooks('user.deleted', userWithoutPassword);
+      
       res.status(204).send();
     } catch (error) {
       console.error('Delete user error:', error);
@@ -131,6 +151,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const productData = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(productData);
+      
+      // Trigger webhooks
+      await triggerWebhooks('product.created', product);
+      
       res.status(201).json(product);
     } catch (error) {
       console.error('Create product error:', error);
@@ -146,6 +170,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!product) {
         return res.status(404).json({ message: 'Product not found' });
       }
+      
+      // Trigger webhooks
+      await triggerWebhooks('product.updated', product);
+      
       res.json(product);
     } catch (error) {
       console.error('Update product error:', error);
@@ -156,10 +184,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/products/:id', requireRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Get product before deleting for webhook
+      const product = await storage.getProduct(id);
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      
       const success = await storage.deleteProduct(id);
       if (!success) {
         return res.status(404).json({ message: 'Product not found' });
       }
+      
+      // Trigger webhooks
+      await triggerWebhooks('product.deleted', product);
+      
       res.status(204).send();
     } catch (error) {
       console.error('Delete product error:', error);
@@ -284,6 +323,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Create interaction error:', error);
       res.status(400).json({ message: 'Invalid interaction data' });
+    }
+  });
+
+  app.put('/api/interactions/:id', requireAuth, async (req, res) => {
+    try {
+      const interactionId = parseInt(req.params.id);
+      const updateData = insertInteractionSchema.partial().parse(req.body);
+      
+      const interaction = await storage.updateInteraction(interactionId, updateData);
+      
+      if (!interaction) {
+        return res.status(404).json({ message: 'Interaction not found' });
+      }
+
+      // Trigger webhooks
+      await triggerWebhooks('interaction.updated', interaction);
+      
+      res.json(interaction);
+    } catch (error) {
+      console.error('Update interaction error:', error);
+      res.status(400).json({ message: 'Invalid interaction data' });
+    }
+  });
+
+  app.delete('/api/interactions/:id', requireAuth, async (req, res) => {
+    try {
+      const interactionId = parseInt(req.params.id);
+      
+      // Get the interaction before deleting for webhook
+      const interaction = await storage.getInteraction(interactionId);
+      if (!interaction) {
+        return res.status(404).json({ message: 'Interaction not found' });
+      }
+      
+      const success = await storage.deleteInteraction(interactionId);
+      if (!success) {
+        return res.status(404).json({ message: 'Interaction not found' });
+      }
+
+      // Trigger webhooks
+      await triggerWebhooks('interaction.deleted', interaction);
+      
+      res.json({ message: 'Interaction deleted successfully' });
+    } catch (error) {
+      console.error('Delete interaction error:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   });
 
