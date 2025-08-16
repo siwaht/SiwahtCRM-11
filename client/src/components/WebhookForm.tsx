@@ -26,6 +26,7 @@ type WebhookFormData = z.infer<typeof webhookSchema>;
 const availableEvents = [
   { id: "lead.created", label: "Lead Created" },
   { id: "lead.updated", label: "Lead Updated" },
+  { id: "lead.deleted", label: "Lead Deleted" },
   { id: "lead.status_changed", label: "Lead Status Changed" },
   { id: "lead.assigned", label: "Lead Assigned" },
   { id: "interaction.created", label: "Interaction Created" },

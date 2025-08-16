@@ -282,10 +282,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/leads/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      
+      // Get the lead before deleting for webhook
+      const lead = await storage.getLead(id);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+      
       const success = await storage.deleteLead(id);
       if (!success) {
         return res.status(404).json({ message: 'Lead not found' });
       }
+
+      // Trigger webhooks
+      await triggerWebhooks('lead.deleted', lead);
+      
       res.status(204).send();
     } catch (error) {
       console.error('Delete lead error:', error);
