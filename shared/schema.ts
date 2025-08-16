@@ -67,7 +67,7 @@ export const interactions = pgTable('interactions', {
   id: serial('id').primaryKey(),
   leadId: integer('lead_id').references(() => leads.id, { onDelete: 'cascade' }).notNull(),
   userId: integer('user_id').references(() => users.id).notNull(),
-  type: text('type', { enum: ['note', 'email', 'call', 'meeting'] }).default('note').notNull(),
+  type: text('type', { enum: ['note', 'email', 'call', 'meeting', 'urgent', 'team'] }).default('note').notNull(),
   text: text('text').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
