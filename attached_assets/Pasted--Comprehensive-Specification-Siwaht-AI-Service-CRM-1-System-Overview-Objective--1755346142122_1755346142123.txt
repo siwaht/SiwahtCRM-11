@@ -1,0 +1,281 @@
+### Comprehensive Specification: Siwaht AI Service CRM
+
+#### 1. System Overview
+
+**Objective:** Develop a full-stack Customer Relationship Management (CRM) system named "Siwaht CRM." This system is tailored for managing AI service sales, tracking leads, logging interactions, providing sales analytics, and integrating with AI agent workflows.
+
+**Scope:** The CRM will manage the sales pipeline for AI services (e.g., website generation, video ads, chat agents, voice AI). It must support Role-Based Access Control (Admin, Agent, Engineer) and provide real-time data synchronization and external integrations via Webhooks and a dedicated AI agent communication protocol (MCP).
+
+#### 2. Technology Stack
+
+**Backend:**
+
+*   **Runtime:** Node.js with Express.js
+*   **Language:** TypeScript (ES Modules)
+*   **Database:** PostgreSQL
+*   **ORM:** Drizzle ORM
+*   **Authentication:** Cookie-based sessions (Express sessions)
+*   **Security:** `bcryptjs` (Password hashing)
+*   **File Uploads:** `multer`
+*   **Real-time Communication:** `ws` library (for MCP/AI integration)
+*   **Data Processing:** `xlsx` (Excel), `papaparse` (CSV)
+
+**Frontend:**
+
+*   **Framework:** React 18 with TypeScript
+*   **Build Tool:** Vite
+*   **Styling:** Tailwind CSS with `shadcn/ui` components
+*   **State Management:** TanStack Query (React Query)
+*   **Routing:** Wouter
+*   **Drag & Drop:** `react-beautiful-dnd`
+*   **Data Visualization:** Chart.js and Recharts
+*   **Forms:** `react-hook-form` with Zod validation
+*   **Animations:** Framer Motion (optional, for enhanced UX)
+
+#### 3. Database Schema (Drizzle ORM - `shared/schema.ts`)
+
+Implement the following tables using PostgreSQL types via Drizzle ORM.
+
+```typescript
+import { pgTable, serial, text, timestamp, integer, real, boolean, jsonb } from 'drizzle-orm/pg-core';
+
+// 3.1 Core User Management
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email').unique().notNull(),
+  username: text('username').unique(), // Primarily for Admins
+  password: text('password').notNull(), // Hashed
+  role: text('role', { enum: ['admin', 'agent', 'engineer'] }).default('agent').notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 3.2 AI Product Catalog
+export const products = pgTable('products', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  price: text('price').notNull(),
+  pitch: text('pitch'),
+  talkingPoints: text('talking_points'),
+  agentNotes: text('agent_notes'),
+  priority: text('priority', { enum: ['High', 'Medium', 'Low'] }).default('Medium'),
+  profitLevel: text('profit_level', { enum: ['High Profit', 'Standard', 'Low Margin'] }).default('Standard'),
+  tags: text('tags').array(),
+  displayOrder: integer('display_order').default(0),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// 3.3 Lead Management
+export const leads = pgTable('leads', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  email: text('email'),
+  phone: text('phone'),
+  company: text('company'),
+  status: text('status', {
+    enum: ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'won', 'lost']
+  }).default('new').notNull(),
+  source: text('source'),
+  value: real('value'), // Estimated deal value
+  assignedTo: integer('assigned_to').references(() => users.id), // Sales Agent
+  assignedEngineer: integer('assigned_engineer').references(() => users.id), // Engineer
+  assignedProduct: integer('assigned_product').references(() => products.id),
+  notes: text('notes'),
+  priority: text('priority', { enum: ['low', 'medium', 'high'] }).default('medium'),
+  score: integer('score').default(0),
+  engineeringProgress: integer('engineering_progress').default(0), // 0-100 scale
+  engineeringNotes: text('engineering_notes'),
+  lastContactedAt: timestamp('last_contacted_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// 3.4 Interaction Logging
+export const interactions = pgTable('interactions', {
+  id: serial('id').primaryKey(),
+  leadId: integer('lead_id').references(() => leads.id, { onDelete: 'cascade' }).notNull(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  type: text('type', { enum: ['note', 'email', 'call', 'meeting'] }).default('note').notNull(),
+  text: text('text').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// 3.5 External Integrations (Webhooks)
+export const webhooks = pgTable('webhooks', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  url: text('url').notNull(),
+  events: text('events').array(), // e.g., ['lead.created', 'lead.won']
+  headers: jsonb('headers').default({}),
+  secret: text('secret'), // For HMAC signature verification
+  isActive: boolean('is_active').default(true),
+  lastTriggered: timestamp('last_triggered'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// 3.6 File Attachments for Leads
+export const leadAttachments = pgTable('lead_attachments', {
+  id: serial('id').primaryKey(),
+  leadId: integer('lead_id').references(() => leads.id, { onDelete: 'cascade' }).notNull(),
+  fileName: text('file_name').notNull(),
+  filePath: text('file_path').notNull(),
+  uploadedById: integer('uploaded_by_id').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// 3.7 MCP (Model Context Protocol) Server Management
+export const mcpServers = pgTable('mcp_servers', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  isActive: boolean('is_active').default(true),
+  config: jsonb('config').default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+```
+
+#### 4. Core Features and Systems
+
+**4.1 Authentication and Authorization**
+
+*   **Session Management:** Implement secure, cookie-based sessions.
+    *   Configuration: `{ httpOnly: true, secure: (NODE_ENV === 'production'), maxAge: 24h, sameSite: 'lax' }`.
+*   **Security:** Use `bcryptjs` for all password hashing.
+*   **Role-Based Access Control (RBAC):**
+    *   **Admin:** Full access (User Management, Product Config, Webhooks, MCP).
+    *   **Agent:** Lead management, interaction logging, product reference viewing.
+    *   **Engineer:** Access to assigned leads (post-sale), project tracking (Engineering Dashboard).
+
+**4.2 Lead Management System**
+
+*   **Enhanced Table View:** A central view with advanced filtering (status, source, assignee, product), sorting, pagination, and inline editing.
+*   **Kanban View:** A visual pipeline using `react-beautiful-dnd`. Columns must match the `leads.status`. Implement optimistic updates for status changes.
+*   **Lead Details:** A dedicated view/modal showing basic info, interaction timeline, notes, and attachments.
+*   **Assignment:** Functionality to assign Agents and Engineers. Implement a load-balancing mechanism for Engineer assignment when a lead is marked 'Won'.
+*   **Import/Export:** Robust CSV/Excel import/export capabilities using `papaparse` and `xlsx`. Must include bulk validation, error reporting, and downloadable templates.
+
+**4.3 Product Management (Admin Only)**
+
+*   **Catalog Management:** CRUD operations for AI services. Include fields for sales guidance (pitch, talking points).
+*   **Ordering:** Implement drag-and-drop functionality to manage `displayOrder`.
+
+**4.4 Analytics Dashboard**
+
+*   **Key Metrics:** Visualize data using Chart.js/Recharts.
+    *   Lead conversion rates and pipeline value.
+    *   Lead status distribution (Pie/Doughnut chart).
+    *   Revenue tracking over time (Line chart).
+*   **Performance:** Agent performance statistics (leads closed, value generated).
+
+**4.5 Engineering Dashboard**
+
+*   A dedicated view for 'engineer' roles.
+*   List leads assigned to the engineer, focusing on 'won' status.
+*   Interface to update `engineeringProgress` (0-100%) and add technical notes.
+
+**4.6 Webhook System**
+
+*   **Configuration:** Admin interface to manage outgoing webhooks.
+*   **Event Triggers:** `lead.created`, `lead.updated`, `lead.status_changed`, `interaction.created`.
+*   **Security:** Implement HMAC SHA256 signature verification.
+*   **Reliability:** Asynchronous processing and a retry mechanism for failed deliveries.
+*   **Testing:** "Test Webhook" functionality in the UI.
+
+**4.7 AI Agent Integration (MCP Server)**
+
+*   **WebSocket Server:** Implement a WebSocket server (e.g., on Port 5003) for Model Context Protocol (MCP) integration.
+*   **Standardized Tools:** Expose CRM functions as tools for AI agents:
+    *   `create_lead`, `get_leads` (with filtering), `update_lead`, `add_interaction`, `get_analytics`, `manage_products`.
+*   **Communication:** Handle standardized JSON commands, execute database operations, and return results in real-time.
+
+#### 5. API Endpoints
+
+Define RESTful API endpoints with appropriate RBAC middleware.
+
+*   **Auth:** `POST /api/login`, `POST /api/logout`, `GET /api/me`
+*   **Leads:** `GET /api/leads` (filterable), `POST /api/leads`, `PUT /api/leads/:id`, `DELETE /api/leads/:id`, `POST /api/leads/bulk`
+*   **Interactions:** `GET /api/leads/:id/interactions`, `POST /api/leads/:id/interactions`
+*   **Attachments:** `POST /api/leads/:id/attachments`
+*   **Users (Admin):** CRUD endpoints (`/api/users`)
+*   **Products (Admin):** CRUD endpoints (`/api/products`), `POST /api/products/reorder`
+*   **Webhooks (Admin):** CRUD endpoints (`/api/webhooks`), `POST /api/webhooks/:id/test`
+
+#### 6. UI/UX Requirements
+
+**6.1 Visual Design**
+
+*   **Theme:** Modern, professional dark theme (e.g., slate-900 backgrounds).
+*   **Aesthetics:** Optional use of glass morphism effects (backdrop-blur) on cards/modals.
+*   **Accents:** Indigo-to-purple gradients for primary actions and highlights.
+
+**6.2 Layout and Navigation**
+
+*   **Mobile-First:** Ensure full functionality and optimized layout on mobile devices.
+*   **Navigation:** Implement a tab-based navigation system on the main Home page:
+    *   Dashboard (All)
+    *   Leads (Table View) (All)
+    *   Kanban (Pipeline View) (All)
+    *   Reference (Products) (Agents/Admins)
+    *   Engineering (Engineers/Admins)
+    *   **Admin Panel Tabs:** Agents (User Mgmt), Products, Webhooks, MCP (AI Mgmt).
+
+**6.3 Components**
+
+*   Utilize `shadcn/ui` components consistently.
+*   Implement skeleton loaders and spinners for data fetching states.
+
+#### 7. Development and Deployment
+
+**7.1 Project Structure**
+
+```
+server/
+  ├── index.ts              # Main server entry
+  ├── auth-simple.ts        # Authentication logic and middleware
+  ├── routes.ts             # API route definitions
+  ├── storage.ts            # Database connection and Drizzle operations
+  ├── ai-agent-integration.ts # WebSocket (MCP) server implementation
+  └── webhooks.ts           # Webhook trigger logic
+
+client/src/
+  ├── App.tsx               # Main entry, routing, context providers
+  ├── pages/                # Page components (e.g., home.tsx)
+  ├── components/
+  │   ├── Dashboard.tsx
+  │   ├── LeadForm.tsx
+  │   ├── enhanced/         # Complex components (e.g., EnhancedLeadTable.tsx)
+  │   └── ui/               # shadcn/ui components
+  └── hooks/                # Custom hooks (e.g., useAuth.ts)
+
+shared/
+  └── schema.ts            # Drizzle schema, shared types, Zod schemas
+```
+
+**7.2 Security and Performance**
+
+*   **Validation:** Use Zod schemas for all client-side form validation and server-side API request validation.
+*   **Database:** Utilize Drizzle ORM to prevent SQL injection. Implement connection pooling.
+*   **Frontend:** Utilize TanStack Query for efficient caching, background updates, and optimistic UI rendering.
+
+**7.3 Configuration and Build Scripts**
+
+*   **Environment Variables:**
+    ```
+    DATABASE_URL=postgresql://...
+    SESSION_SECRET=random_hex_string
+    NODE_ENV=development/production
+    PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE
+    ```
+*   **Build Scripts (package.json):**
+
+```json
+{
+  "scripts": {
+    "dev": "SESSION_SECRET=$(openssl rand -hex 32) NODE_ENV=development tsx server/index.ts",
+    "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "start": "NODE_ENV=production node dist/index.js",
+    "db:push": "drizzle-kit push"
+  }
+}
+```
