@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
-import { Dashboard } from "@uppy/react";
+import { DashboardModal } from "@uppy/react";
 import "@uppy/core/dist/style.min.css";
 import "@uppy/dashboard/dist/style.min.css";
 import AwsS3 from "@uppy/aws-s3";
@@ -94,26 +94,7 @@ export function ObjectUploader({
     return uppyInstance;
   });
 
-  // Close uploader when clicking outside or pressing Escape
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      setShowUploader(false);
-    }
-  };
-
-  // Handle escape key to close
-  useEffect(() => {
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && showUploader) {
-        setShowUploader(false);
-      }
-    };
-    
-    if (showUploader) {
-      document.addEventListener('keydown', handleEscape);
-      return () => document.removeEventListener('keydown', handleEscape);
-    }
-  }, [showUploader]);
+  // DashboardModal handles its own backdrop clicks and escape key
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -159,39 +140,17 @@ export function ObjectUploader({
         <p className="text-red-400 text-sm mt-2">Storage limit reached. Please contact support to upgrade.</p>
       )}
 
-      {showUploader && (
-        <div 
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-          onClick={handleBackdropClick}
-        >
-          <div 
-            className="bg-slate-800 rounded-lg border border-slate-600 w-full max-w-2xl max-h-[80vh] overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between p-4 border-b border-slate-700">
-              <h3 className="text-white font-medium">Upload Files</h3>
-              <button
-                onClick={() => setShowUploader(false)}
-                className="text-slate-400 hover:text-white transition-colors"
-              >
-                ×
-              </button>
-            </div>
-            <div className="p-4">
-              <Dashboard
-                uppy={uppy}
-                proudlyDisplayPoweredByUppy={false}
-                height={400}
-                showProgressDetails={true}
-                hideUploadButton={false}
-                hideCancelButton={false}
-                hideRetryButton={false}
-                hidePauseResumeButton={false}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <DashboardModal
+        uppy={uppy}
+        open={showUploader}
+        onRequestClose={() => setShowUploader(false)}
+        proudlyDisplayPoweredByUppy={false}
+        showProgressDetails={true}
+        hideUploadButton={false}
+        hideCancelButton={false}
+        hideRetryButton={false}
+        hidePauseResumeButton={false}
+      />
     </div>
   );
 }

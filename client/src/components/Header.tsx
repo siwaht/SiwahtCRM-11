@@ -123,15 +123,15 @@ export default function Header() {
   };
 
   const markAsRead = (id: number) => {
-    setNotifications(prev => 
-      prev.map(notif => 
+    setNotifications((prev: any[]) => 
+      prev.map((notif: any) => 
         notif.id === id ? { ...notif, read: true } : notif
       )
     );
   };
 
   const removeNotification = (id: number) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== id));
+    setNotifications((prev: any[]) => prev.filter((notif: any) => notif.id !== id));
   };
 
   const getNotificationIcon = (type: string) => {
@@ -143,7 +143,7 @@ export default function Header() {
     }
   };
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
 
   const handleProfileClick = () => {
     setShowProfile(true);
@@ -263,7 +263,7 @@ export default function Header() {
                 <p className="text-slate-400">No notifications</p>
               </div>
             ) : (
-              notifications.map((notification) => (
+              notifications.map((notification: any) => (
                 <div
                   key={notification.id}
                   className={`p-3 rounded-lg border transition-colors ${
