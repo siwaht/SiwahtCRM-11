@@ -30,7 +30,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
     notes: lead?.notes || "",
     priority: lead?.priority || "medium",
     tags: lead?.tags || [],
-    followUpDate: lead?.followUpDate ? lead?.followUpDate.toISOString().split('T')[0] : undefined,
+    followUpDate: lead?.followUpDate ? lead?.followUpDate.toISOString().split('T')[0] : "",
   });
   
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
