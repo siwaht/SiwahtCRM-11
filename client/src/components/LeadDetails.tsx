@@ -40,6 +40,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [quickNote, setQuickNote] = useState("");
+  const [selectedQuickAction, setSelectedQuickAction] = useState<string | null>(null);
+  const [fileDescription, setFileDescription] = useState("");
   const [newInteraction, setNewInteraction] = useState({
     type: "note" as const,
     text: ""
@@ -109,11 +111,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   });
 
   const quickNoteMutation = useMutation({
-    mutationFn: async (noteText: string) => {
-      return await apiRequest("POST", `/api/leads/${lead.id}/interactions`, {
-        type: "note",
-        text: noteText
-      });
+    mutationFn: async (data: { type: string; text: string }) => {
+      return await apiRequest("POST", `/api/leads/${lead.id}/interactions`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/interactions`] });
@@ -205,24 +204,26 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   };
 
   const handleQuickAction = (type: string) => {
-    const actionTexts = {
-      call: "Initiated phone call",
-      email: "Sent email",
-      meeting: "Scheduled meeting",
-      note: "Added note",
-      team: "Team discussion",
-      urgent: "Marked as urgent"
-    };
-    
-    addInteractionMutation.mutate({
-      type: type as any,
-      text: actionTexts[type as keyof typeof actionTexts] || "Interaction logged"
-    });
+    // Only set the selected action, don't create interaction yet
+    setSelectedQuickAction(selectedQuickAction === type ? null : type);
   };
 
   const handleQuickNote = () => {
     if (!quickNote.trim()) return;
-    quickNoteMutation.mutate(quickNote);
+    
+    const noteText = selectedQuickAction 
+      ? `[${selectedQuickAction.toUpperCase()}] ${quickNote}`
+      : quickNote;
+    
+    const interactionType = selectedQuickAction || "note";
+    
+    quickNoteMutation.mutate({
+      type: interactionType as any,
+      text: noteText
+    });
+    
+    // Clear selected action after use
+    setSelectedQuickAction(null);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -519,7 +520,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
             <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
               <Button
                 onClick={() => handleQuickAction('call')}
-                className="flex flex-col items-center justify-center h-16 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 text-blue-400"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'call' 
+                  ? 'bg-blue-600/40 border-blue-400 text-blue-300' 
+                  : 'bg-blue-600/20 hover:bg-blue-600/30 border-blue-500/30 text-blue-400'}`}
                 data-testid="button-quick-call"
               >
                 <Phone className="h-4 w-4 mb-1" />
@@ -527,7 +530,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
               </Button>
               <Button
                 onClick={() => handleQuickAction('email')}
-                className="flex flex-col items-center justify-center h-16 bg-green-600/20 hover:bg-green-600/30 border border-green-500/30 text-green-400"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'email' 
+                  ? 'bg-green-600/40 border-green-400 text-green-300' 
+                  : 'bg-green-600/20 hover:bg-green-600/30 border-green-500/30 text-green-400'}`}
                 data-testid="button-quick-email"
               >
                 <Mail className="h-4 w-4 mb-1" />
@@ -535,7 +540,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
               </Button>
               <Button
                 onClick={() => handleQuickAction('meeting')}
-                className="flex flex-col items-center justify-center h-16 bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-400"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'meeting' 
+                  ? 'bg-purple-600/40 border-purple-400 text-purple-300' 
+                  : 'bg-purple-600/20 hover:bg-purple-600/30 border-purple-500/30 text-purple-400'}`}
                 data-testid="button-quick-meeting"
               >
                 <Calendar className="h-4 w-4 mb-1" />
@@ -551,7 +558,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
               </Button>
               <Button
                 onClick={() => handleQuickAction('team')}
-                className="flex flex-col items-center justify-center h-16 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 text-orange-400"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'team' 
+                  ? 'bg-orange-600/40 border-orange-400 text-orange-300' 
+                  : 'bg-orange-600/20 hover:bg-orange-600/30 border-orange-500/30 text-orange-400'}`}
                 data-testid="button-quick-team"
               >
                 <Users className="h-4 w-4 mb-1" />
@@ -559,7 +568,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
               </Button>
               <Button
                 onClick={() => handleQuickAction('urgent')}
-                className="flex flex-col items-center justify-center h-16 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-400"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'urgent' 
+                  ? 'bg-red-600/40 border-red-400 text-red-300' 
+                  : 'bg-red-600/20 hover:bg-red-600/30 border-red-500/30 text-red-400'}`}
                 data-testid="button-quick-urgent"
               >
                 <AlertTriangle className="h-4 w-4 mb-1" />
@@ -616,6 +627,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                 
                 <div className="flex items-center gap-2">
                   <Input 
+                    value={fileDescription}
+                    onChange={(e) => setFileDescription(e.target.value)}
                     placeholder="Optional description for the files..."
                     className="bg-slate-800/50 border-slate-700 text-slate-200"
                     data-testid="input-file-description"
@@ -626,8 +639,11 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     storageUsed={storageInfo?.storageUsed || 0}
                     storageLimit={storageInfo?.storageLimit || 524288000}
                     onGetUploadParameters={async () => {
-                      const response = await apiRequest("POST", "/api/objects/upload") as { method: "PUT"; url: string };
-                      return response;
+                      const response = await apiRequest("POST", "/api/objects/upload");
+                      return {
+                        method: "PUT" as const,
+                        url: (response as any).uploadURL
+                      };
                     }}
                     onComplete={async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
                       // Handle successful upload
@@ -641,6 +657,30 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                           });
                         } catch (error) {
                           console.error('Error setting file metadata:', error);
+                        }
+                      }
+                      
+                      // Create interaction if description provided or quick action selected
+                      if (fileDescription.trim() || selectedQuickAction) {
+                        const interactionText = fileDescription.trim() 
+                          ? (selectedQuickAction 
+                              ? `[${selectedQuickAction.toUpperCase()}] Uploaded file(s): ${fileDescription}` 
+                              : `Uploaded file(s): ${fileDescription}`)
+                          : `[${selectedQuickAction?.toUpperCase()}] Uploaded file(s)`;
+                        
+                        const interactionType = selectedQuickAction || "note";
+                        
+                        try {
+                          await apiRequest("POST", `/api/leads/${lead.id}/interactions`, {
+                            type: interactionType,
+                            text: interactionText
+                          });
+                          
+                          queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/interactions`] });
+                          setSelectedQuickAction(null);
+                          setFileDescription("");
+                        } catch (error) {
+                          console.error('Error creating interaction:', error);
                         }
                       }
                       
