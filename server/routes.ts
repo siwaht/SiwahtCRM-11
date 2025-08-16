@@ -447,6 +447,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete('/api/lead-attachments/:id', requireAuth, async (req, res) => {
+    try {
+      const attachmentId = parseInt(req.params.id);
+      const success = await storage.deleteLeadAttachment(attachmentId);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ message: 'Attachment not found' });
+      }
+    } catch (error) {
+      console.error('Delete attachment error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Webhooks (Admin only)
   app.get('/api/webhooks', requireRole('admin'), async (req, res) => {
     try {

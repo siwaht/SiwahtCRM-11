@@ -28,7 +28,7 @@ import {
   Package,
   Upload
 } from "lucide-react";
-import type { Lead, Interaction, Product } from "@shared/schema";
+import type { Lead, Interaction, Product, LeadAttachment } from "@shared/schema";
 
 interface LeadDetailsProps {
   lead: Lead;
@@ -64,6 +64,10 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
 
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
+  });
+
+  const { data: attachments = [], isLoading: attachmentsLoading } = useQuery<LeadAttachment[]>({
+    queryKey: [`/api/leads/${lead.id}/attachments`],
   });
 
   const { data: storageInfo } = useQuery<{storageUsed: number; storageLimit: number; storageAvailable: number}>({
@@ -112,6 +116,27 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
         description: errorMessage,
       });
     },
+  });
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async (attachmentId: number) => {
+      return await apiRequest("DELETE", `/api/lead-attachments/${attachmentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+      toast({
+        title: "Success",
+        description: "Attachment deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete attachment",
+      });
+    }
   });
 
   const quickNoteMutation = useMutation({
@@ -680,9 +705,66 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
               </div>
               
               <div className="space-y-4">
-                <div className="text-center text-slate-400">
-                  <p className="text-sm">No attachments yet.</p>
-                </div>
+                {/* Existing Attachments */}
+                {attachmentsLoading ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500 mx-auto"></div>
+                  </div>
+                ) : attachments.length > 0 ? (
+                  <div className="space-y-2">
+                    <h5 className="text-sm font-medium text-slate-300">Uploaded Files</h5>
+                    {attachments.map((attachment) => {
+                      const formatFileSize = (bytes: number) => {
+                        if (bytes === 0) return '0 Bytes';
+                        const k = 1024;
+                        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                        const i = Math.floor(Math.log(bytes) / Math.log(k));
+                        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                      };
+                      
+                      return (
+                        <div key={attachment.id} className="flex items-center justify-between p-3 bg-slate-800/30 border border-slate-700/50 rounded-lg">
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <FileText className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-slate-200 truncate">
+                                {attachment.fileName}
+                              </p>
+                              <div className="flex items-center gap-3 text-xs text-slate-400">
+                                <span>{formatFileSize(attachment.fileSize || 0)}</span>
+                                <span>•</span>
+                                <span>{new Date(attachment.createdAt).toLocaleDateString()}</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <a
+                              href={attachment.filePath}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 rounded border border-blue-400/30 hover:border-blue-300/30 transition-colors"
+                              data-testid={`link-view-attachment-${attachment.id}`}
+                            >
+                              View
+                            </a>
+                            <button
+                              onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
+                              disabled={deleteAttachmentMutation.isPending}
+                              className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-400/30 hover:border-red-300/30 transition-colors disabled:opacity-50"
+                              data-testid={`button-delete-attachment-${attachment.id}`}
+                            >
+                              {deleteAttachmentMutation.isPending ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center text-slate-400">
+                    <p className="text-sm">No attachments yet.</p>
+                  </div>
+                )}
                 
                 <div className="flex items-center gap-2">
                   <Input 
@@ -743,6 +825,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                           });
                           
                           queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/interactions`] });
+                          queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
                           setSelectedQuickAction(null);
                           setFileDescription("");
                         } catch (error) {
