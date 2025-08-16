@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { Webhook } from "@shared/schema";
-import { X } from "lucide-react";
+import { X, Plus, Trash2 } from "lucide-react";
 
 const webhookSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -19,6 +19,7 @@ const webhookSchema = z.object({
   events: z.array(z.string()).min(1, "At least one event is required"),
   isActive: z.boolean(),
   secret: z.string().optional(),
+  headers: z.record(z.string()).optional(),
 });
 
 type WebhookFormData = z.infer<typeof webhookSchema>;
@@ -50,6 +51,9 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
   const [selectedEvents, setSelectedEvents] = useState<string[]>(
     webhook?.events || ["lead.created"]
   );
+  const [customHeaders, setCustomHeaders] = useState<Array<{key: string, value: string}>>(
+    webhook?.headers ? Object.entries(webhook.headers).map(([key, value]) => ({key, value})) : []
+  );
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -62,6 +66,7 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
       events: webhook?.events || ["lead.created"],
       isActive: webhook?.isActive ?? true,
       secret: webhook?.secret || "",
+      headers: webhook?.headers || {},
     },
   });
 
@@ -118,8 +123,29 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
     form.setValue("events", newEvents);
   };
 
+  const addHeader = () => {
+    setCustomHeaders([...customHeaders, { key: '', value: '' }]);
+  };
+
+  const removeHeader = (index: number) => {
+    setCustomHeaders(customHeaders.filter((_, i) => i !== index));
+  };
+
+  const updateHeader = (index: number, field: 'key' | 'value', value: string) => {
+    const updated = [...customHeaders];
+    updated[index][field] = value;
+    setCustomHeaders(updated);
+  };
+
   const onSubmit = (data: WebhookFormData) => {
-    const formData = { ...data, events: selectedEvents };
+    const headers = customHeaders.reduce((acc, header) => {
+      if (header.key && header.value) {
+        acc[header.key] = header.value;
+      }
+      return acc;
+    }, {} as Record<string, string>);
+    
+    const formData = { ...data, events: selectedEvents, headers };
     
     if (webhook) {
       updateMutation.mutate(formData);
@@ -175,22 +201,19 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
 
           {/* Events */}
           <div className="space-y-3">
-            <Label>Events to Subscribe</Label>
-            <div className="grid grid-cols-2 gap-3">
-              {availableEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className="flex items-center space-x-2 p-3 bg-slate-800 rounded-lg"
-                >
+            <Label className="text-slate-200 font-medium">Events</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {availableEvents.slice(0, 8).map((event) => (
+                <div key={event.id} className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     id={event.id}
                     checked={selectedEvents.includes(event.id)}
                     onChange={() => handleEventToggle(event.id)}
-                    className="rounded border-slate-600"
+                    className="h-4 w-4 text-purple-600 bg-slate-800 border-slate-600 rounded"
                   />
-                  <Label htmlFor={event.id} className="text-sm">
-                    {event.label}
+                  <Label htmlFor={event.id} className="text-sm text-slate-300 cursor-pointer">
+                    {event.id}
                   </Label>
                 </div>
               ))}
@@ -200,18 +223,61 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
             )}
           </div>
 
+          {/* Headers */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="text-slate-200 font-medium">Headers</Label>
+              <Button
+                type="button"
+                onClick={addHeader}
+                size="sm"
+                className="bg-slate-700 hover:bg-slate-600 text-slate-200"
+                data-testid="button-add-header"
+              >
+                Add Header
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {customHeaders.map((header, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <Input
+                    placeholder="Header name"
+                    value={header.key}
+                    onChange={(e) => updateHeader(index, 'key', e.target.value)}
+                    className="bg-slate-800 border-slate-600 text-slate-100 flex-1"
+                    data-testid={`input-header-key-${index}`}
+                  />
+                  <Input
+                    placeholder="Header value"
+                    value={header.value}
+                    onChange={(e) => updateHeader(index, 'value', e.target.value)}
+                    className="bg-slate-800 border-slate-600 text-slate-100 flex-1"
+                    data-testid={`input-header-value-${index}`}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => removeHeader(index)}
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                    data-testid={`button-remove-header-${index}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Secret */}
           <div className="space-y-2">
-            <Label htmlFor="secret">Secret Key (Optional)</Label>
+            <Label htmlFor="secret" className="text-slate-200 font-medium">Secret (Optional)</Label>
             <Input
               id="secret"
               {...form.register("secret")}
               className="bg-slate-800 border-slate-600 text-slate-100"
-              placeholder="Optional secret for webhook signature verification"
+              placeholder="Webhook secret for verification"
             />
-            <p className="text-xs text-slate-400">
-              Used for HMAC signature verification to ensure webhook authenticity
-            </p>
           </div>
 
           {/* Active Toggle */}
@@ -221,22 +287,24 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
               checked={form.watch("isActive")}
               onCheckedChange={(checked) => form.setValue("isActive", checked)}
             />
-            <Label htmlFor="isActive">Active</Label>
+            <Label htmlFor="isActive" className="text-slate-200 font-medium">Active</Label>
           </div>
 
           {/* Actions */}
           <div className="flex justify-end space-x-3 pt-4">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={onClose}
+              className="text-slate-400 hover:text-slate-300"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={createMutation.isPending || updateMutation.isPending}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
+              className="bg-purple-600 hover:bg-purple-700"
+              data-testid="button-create-webhook"
             >
               {createMutation.isPending || updateMutation.isPending ? "Saving..." : webhook ? "Update" : "Create"}
             </Button>
