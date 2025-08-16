@@ -33,9 +33,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
     followUpDate: lead?.followUpDate ? (
       lead.followUpDate instanceof Date 
         ? lead.followUpDate.toISOString().split('T')[0]
-        : typeof lead.followUpDate === 'string' 
-          ? lead.followUpDate.split('T')[0]
-          : ""
+        : new Date(lead.followUpDate).toISOString().split('T')[0]
     ) : "",
   });
   
