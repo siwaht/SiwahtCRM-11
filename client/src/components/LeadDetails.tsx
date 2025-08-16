@@ -400,7 +400,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <span className="text-slate-400 text-xs uppercase tracking-wider">Source</span>
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Source: </span>
                 <span className="text-slate-300 text-sm">{lead.source || 'Website'}</span>
               </div>
               <div className="space-y-1">
