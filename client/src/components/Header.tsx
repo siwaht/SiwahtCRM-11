@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +9,51 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Bell, LogOut, User, X, CheckCheck, AlertTriangle, Info, Calendar, Edit3, Mail, Phone, MapPin, Building, UserCircle } from "lucide-react";
+
+// Storage Usage Component
+function StorageUsageDisplay() {
+  const { data: storageInfo } = useQuery<{storageUsed: number; storageLimit: number; storageAvailable: number}>({
+    queryKey: ["/api/user/storage"],
+  });
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  if (!storageInfo) {
+    return <div className="text-slate-400">Loading storage info...</div>;
+  }
+
+  const storageUsedPercent = Math.round((storageInfo.storageUsed / storageInfo.storageLimit) * 100);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-slate-300">Used Storage</span>
+        <span className="text-sm text-slate-400">
+          {formatFileSize(storageInfo.storageUsed)} / {formatFileSize(storageInfo.storageLimit)}
+        </span>
+      </div>
+      <div className="w-full bg-slate-700/50 rounded-full h-3">
+        <div 
+          className={`h-3 rounded-full transition-all ${
+            storageUsedPercent > 90 ? 'bg-red-500' : 
+            storageUsedPercent > 75 ? 'bg-yellow-500' : 'bg-green-500'
+          }`}
+          style={{ width: `${Math.min(storageUsedPercent, 100)}%` }}
+        />
+      </div>
+      <div className="flex justify-between text-xs text-slate-400">
+        <span>{storageUsedPercent}% used</span>
+        <span>{formatFileSize(storageInfo.storageAvailable)} available</span>
+      </div>
+    </div>
+  );
+}
 import siwatLogoPath from "@assets/siwath_logo_withoutbackground_1755357359703.png";
 
 export default function Header() {
@@ -329,6 +375,19 @@ export default function Header() {
                     </div>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Storage Usage */}
+            <Card className="bg-slate-800/30 border-slate-700/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Calendar className="h-5 w-5 text-green-400" />
+                  Storage Usage
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <StorageUsageDisplay />
               </CardContent>
             </Card>
 

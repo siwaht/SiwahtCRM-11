@@ -18,6 +18,8 @@ export const users = pgTable('users', {
   password: text('password').notNull(),
   role: text('role', { enum: ['admin', 'agent', 'engineer'] }).default('agent').notNull(),
   isActive: boolean('is_active').default(true),
+  storageUsed: integer('storage_used').default(0), // Storage used in bytes
+  storageLimit: integer('storage_limit').default(524288000), // 500MB limit in bytes
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -91,6 +93,7 @@ export const leadAttachments = pgTable('lead_attachments', {
   leadId: integer('lead_id').references(() => leads.id, { onDelete: 'cascade' }).notNull(),
   fileName: text('file_name').notNull(),
   filePath: text('file_path').notNull(),
+  fileSize: integer('file_size').default(0),
   uploadedById: integer('uploaded_by_id').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

@@ -59,6 +59,10 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     queryKey: ["/api/products"],
   });
 
+  const { data: storageInfo } = useQuery<{storageUsed: number; storageLimit: number; storageAvailable: number}>({
+    queryKey: ["/api/user/storage"],
+  });
+
   const addInteractionMutation = useMutation({
     mutationFn: async (data: typeof newInteraction) => {
       return await apiRequest("POST", `/api/leads/${lead.id}/interactions`, data);
@@ -600,6 +604,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                   <ObjectUploader
                     maxNumberOfFiles={5}
                     maxFileSize={10485760} // 10MB
+                    storageUsed={storageInfo?.storageUsed || 0}
+                    storageLimit={storageInfo?.storageLimit || 524288000}
                     onGetUploadParameters={async () => {
                       const response = await apiRequest("POST", "/api/objects/upload");
                       return response;
@@ -618,6 +624,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                           console.error('Error setting file metadata:', error);
                         }
                       }
+                      
+                      // Invalidate storage query to refresh usage
+                      queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
                       
                       toast({
                         title: "Success",

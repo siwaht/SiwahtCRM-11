@@ -31,6 +31,8 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+  updateUserStorage(userId: number, storageUsed: number): Promise<void>;
+  addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number }): Promise<void>;
   getAllUsers(): Promise<User[]>;
   deleteUser(id: number): Promise<boolean>;
 
@@ -154,6 +156,33 @@ export class DatabaseStorage implements IStorage {
   async deleteUser(id: number): Promise<boolean> {
     const result = await db.delete(users).where(eq(users.id, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  async updateUserStorage(userId: number, storageUsed: number): Promise<void> {
+    try {
+      await db
+        .update(users)
+        .set({ storageUsed, updatedAt: new Date() })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      console.error('Update user storage error:', error);
+      throw error;
+    }
+  }
+
+  async addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number }): Promise<void> {
+    try {
+      await db.insert(leadAttachments).values({
+        leadId: attachment.leadId,
+        fileName: attachment.fileName,
+        filePath: attachment.filePath,
+        fileSize: attachment.fileSize,
+        uploadedById: attachment.uploadedById
+      });
+    } catch (error) {
+      console.error('Add lead attachment error:', error);
+      throw error;
+    }
   }
 
   // Products

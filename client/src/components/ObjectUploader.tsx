@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
+  storageUsed?: number;
+  storageLimit?: number;
   onGetUploadParameters: () => Promise<{
     method: "PUT";
     url: string;
@@ -53,17 +55,21 @@ interface ObjectUploaderProps {
 export function ObjectUploader({
   maxNumberOfFiles = 1,
   maxFileSize = 10485760, // 10MB default
+  storageUsed = 0,
+  storageLimit = 524288000, // 500MB default
   onGetUploadParameters,
   onComplete,
   buttonClassName,
   children,
 }: ObjectUploaderProps) {
+  const storageAvailable = storageLimit - storageUsed;
+  const storageUsedPercent = Math.round((storageUsed / storageLimit) * 100);
   const [showModal, setShowModal] = useState(false);
   const [uppy] = useState(() =>
     new Uppy({
       restrictions: {
         maxNumberOfFiles,
-        maxFileSize,
+        maxFileSize: Math.min(maxFileSize, storageAvailable), // Don't allow uploads larger than available storage
       },
       autoProceed: false,
     })
@@ -76,11 +82,49 @@ export function ObjectUploader({
       })
   );
 
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
   return (
     <div>
-      <Button onClick={() => setShowModal(true)} className={buttonClassName}>
+      {/* Storage Usage Display */}
+      <div className="mb-4 p-3 bg-slate-800/50 border border-slate-700/50 rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-slate-300">Storage Usage</span>
+          <span className="text-sm text-slate-400">
+            {formatFileSize(storageUsed)} / {formatFileSize(storageLimit)}
+          </span>
+        </div>
+        <div className="w-full bg-slate-700/50 rounded-full h-2">
+          <div 
+            className={`h-2 rounded-full transition-all ${
+              storageUsedPercent > 90 ? 'bg-red-500' : 
+              storageUsedPercent > 75 ? 'bg-yellow-500' : 'bg-green-500'
+            }`}
+            style={{ width: `${Math.min(storageUsedPercent, 100)}%` }}
+          />
+        </div>
+        <div className="flex justify-between mt-1 text-xs text-slate-400">
+          <span>{storageUsedPercent}% used</span>
+          <span>{formatFileSize(storageAvailable)} available</span>
+        </div>
+      </div>
+
+      <Button 
+        onClick={() => setShowModal(true)} 
+        className={buttonClassName}
+        disabled={storageAvailable <= 0}
+      >
         {children}
       </Button>
+      {storageAvailable <= 0 && (
+        <p className="text-red-400 text-sm mt-2">Storage limit reached. Please contact support to upgrade.</p>
+      )}
 
       <DashboardModal
         uppy={uppy}

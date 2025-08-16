@@ -633,33 +633,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user storage usage
+  app.get('/api/user/storage', requireAuth, async (req, res) => {
+    try {
+      const userId = req.session?.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: 'User not authenticated' });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      res.json({
+        storageUsed: user.storageUsed || 0,
+        storageLimit: user.storageLimit || 524288000, // 500MB default
+        storageAvailable: (user.storageLimit || 524288000) - (user.storageUsed || 0)
+      });
+    } catch (error) {
+      console.error('Error getting storage usage:', error);
+      res.status(500).json({ error: 'Failed to get storage usage' });
+    }
+  });
+
   // Endpoint for updating file metadata after upload
   app.put('/api/lead-attachments', requireAuth, async (req, res) => {
-    if (!req.body.fileURL || !req.body.leadId) {
-      return res.status(400).json({ error: 'fileURL and leadId are required' });
+    if (!req.body.fileURL || !req.body.leadId || !req.body.fileSize) {
+      return res.status(400).json({ error: 'fileURL, leadId, and fileSize are required' });
     }
 
-    const userId = req.session?.user?.id?.toString();
+    const userId = req.session?.user?.id;
     if (!userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
 
     try {
+      // Get current user storage info
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const fileSize = parseInt(req.body.fileSize);
+      const currentUsage = user.storageUsed || 0;
+      const storageLimit = user.storageLimit || 524288000; // 500MB
+
+      // Check if adding this file would exceed storage limit
+      if (currentUsage + fileSize > storageLimit) {
+        return res.status(413).json({ 
+          error: 'Storage limit exceeded',
+          storageUsed: currentUsage,
+          storageLimit: storageLimit,
+          fileSize: fileSize
+        });
+      }
+
       const objectStorageService = new ObjectStorageService();
       const objectPath = await objectStorageService.trySetObjectEntityAclPolicy(
         req.body.fileURL,
         {
-          owner: userId,
+          owner: userId.toString(),
           visibility: "private", // Lead attachments should be private
         }
       );
 
-      // Here you could also save file metadata to the database if needed
-      // For now, just return success
+      // Update user's storage usage
+      await storage.updateUserStorage(userId, currentUsage + fileSize);
+
+      // Save file metadata to database
+      await storage.addLeadAttachment({
+        leadId: parseInt(req.body.leadId),
+        fileName: req.body.fileName || 'Uploaded file',
+        filePath: objectPath,
+        uploadedById: userId,
+        fileSize: fileSize
+      });
+
       res.json({
         success: true,
         objectPath: objectPath,
-        message: 'File uploaded successfully'
+        message: 'File uploaded successfully',
+        newStorageUsed: currentUsage + fileSize
       });
     } catch (error) {
       console.error('Error setting file ACL:', error);
