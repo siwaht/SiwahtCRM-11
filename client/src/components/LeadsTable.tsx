@@ -35,6 +35,23 @@ export default function LeadsTable() {
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads", filters],
+    queryFn: async () => {
+      // Build query parameters from filters
+      const params = new URLSearchParams();
+      if (filters.search) params.set('search', filters.search);
+      if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+      if (filters.assignedTo && filters.assignedTo !== 'all') params.set('assignedTo', filters.assignedTo);
+      if (filters.source) params.set('source', filters.source);
+      
+      const url = `/api/leads${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url, { credentials: 'include' });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch leads');
+      }
+      
+      return response.json();
+    },
   });
 
   const { data: users = [] } = useQuery<any[]>({
