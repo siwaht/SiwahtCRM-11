@@ -388,7 +388,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                 </Badge>
               </div>
               <div className="space-y-1">
-                <span className="text-slate-400 text-xs uppercase tracking-wider">Score</span>
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Score: </span>
                 <div className="flex items-center gap-1">
                   <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-400/30 text-xs px-2 py-1">
                     {lead.score || 55}
