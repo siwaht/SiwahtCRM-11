@@ -36,10 +36,14 @@ export default function Home() {
     }
   };
 
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as TabType);
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       <Header />
-      <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} userRole={user.role} />
+      <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} userRole={user.role} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderTabContent()}
       </main>
