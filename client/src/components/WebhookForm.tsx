@@ -129,7 +129,7 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-2xl">
+      <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             {webhook ? "Edit Webhook" : "Add Webhook"}
