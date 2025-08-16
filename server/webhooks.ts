@@ -6,9 +6,10 @@ export async function triggerWebhooks(event: string, data: any, specificWebhooks
   try {
     const webhooks = specificWebhooks || await storage.getActiveWebhooks();
     
-    const relevantWebhooks = webhooks.filter(webhook => 
-      webhook.events && webhook.events.includes(event)
-    );
+    // For manual tests, bypass event filtering when specific webhooks are provided
+    const relevantWebhooks = specificWebhooks 
+      ? specificWebhooks 
+      : webhooks.filter(webhook => webhook.events && webhook.events.includes(event));
 
     const promises = relevantWebhooks.map(async (webhook) => {
       try {
