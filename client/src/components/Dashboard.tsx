@@ -128,14 +128,11 @@ export default function Dashboard() {
     <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <div className="space-y-2">
-        <h1 className="text-2xl sm:text-3xl font-bold text-blue-400" data-testid="dashboard-title">
-          Admin Dashboard
-        </h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-blue-400" data-testid="dashboard-title">Dashboard</h1>
         <p className="text-slate-400 text-sm sm:text-base">
           Track your leads, monitor performance, and manage your sales pipeline with enterprise-level insights.
         </p>
       </div>
-
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statsCards.map((stat, index) => {
@@ -168,7 +165,6 @@ export default function Dashboard() {
           );
         })}
       </div>
-
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Lead Status Distribution */}
@@ -288,7 +284,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
       {/* Recent Activity */}
       <Card className="bg-slate-800/30 border-slate-700/50 backdrop-blur-sm">
         <CardContent className="p-6">
