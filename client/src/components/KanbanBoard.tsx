@@ -87,9 +87,9 @@ export default function KanbanBoard() {
       <div className="space-y-6">
         <div className="animate-pulse">
           <div className="h-8 bg-slate-700 rounded w-1/4 mb-4"></div>
-          <div className="flex space-x-6 overflow-x-auto">
+          <div className="flex space-x-3 sm:space-x-6 overflow-x-auto">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex-shrink-0 w-80 h-96 bg-slate-800/30 rounded-xl"></div>
+              <div key={i} className="flex-shrink-0 w-72 sm:w-80 h-80 sm:h-96 bg-slate-800/30 rounded-xl"></div>
             ))}
           </div>
         </div>
@@ -98,14 +98,14 @@ export default function KanbanBoard() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Sales Pipeline</h2>
-          <p className="text-slate-400 mt-1">Visual pipeline management with drag & drop</p>
+          <h2 className="text-xl sm:text-2xl font-bold">Sales Pipeline</h2>
+          <p className="text-slate-400 mt-1 text-sm sm:text-base">Visual pipeline management with drag & drop</p>
         </div>
-        <Button className="flex items-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700">
+        <Button className="flex items-center justify-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           <span>Add Lead</span>
         </Button>
@@ -113,16 +113,16 @@ export default function KanbanBoard() {
 
       {/* Kanban Board */}
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex space-x-6 overflow-x-auto pb-4">
+        <div className="flex space-x-3 sm:space-x-6 overflow-x-auto pb-4">
           {Object.entries(statusConfig).map(([status, config]) => {
             const statusLeads = groupedLeads[status] || [];
             
             return (
-              <div key={status} className="flex-shrink-0 w-80">
+              <div key={status} className="flex-shrink-0 w-72 sm:w-80">
                 <Card className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50">
-                  <CardContent className="p-4">
+                  <CardContent className="p-3 sm:p-4">
                     {/* Column Header */}
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
                       <div className="flex items-center space-x-2">
                         <div className={`w-3 h-3 ${config.color} rounded-full`}></div>
                         <h3 className="font-semibold">{config.label}</h3>
@@ -141,7 +141,7 @@ export default function KanbanBoard() {
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`space-y-3 min-h-[400px] ${
+                          className={`space-y-2 sm:space-y-3 min-h-[300px] sm:min-h-[400px] ${
                             snapshot.isDraggingOver ? "bg-slate-700/20 rounded-lg" : ""
                           }`}
                         >
@@ -156,28 +156,28 @@ export default function KanbanBoard() {
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
-                                  className={`bg-slate-800/50 border border-slate-700/30 rounded-lg p-4 cursor-move hover:border-indigo-500/50 transition-colors ${
+                                  className={`bg-slate-800/50 border border-slate-700/30 rounded-lg p-3 sm:p-4 cursor-move hover:border-indigo-500/50 transition-colors ${
                                     snapshot.isDragging ? "shadow-xl rotate-3" : ""
                                   }`}
                                   data-testid={`card-lead-${lead.id}`}
                                 >
                                   {/* Card Header */}
                                   <div className="flex items-start justify-between mb-2">
-                                    <h4 className="font-medium text-sm">{lead.company || lead.name}</h4>
-                                    <span className="text-xs text-slate-400">
+                                    <h4 className="font-medium text-xs sm:text-sm truncate flex-1 mr-2">{lead.company || lead.name}</h4>
+                                    <span className="text-xs text-slate-400 flex-shrink-0">
                                       {lead.value ? `$${lead.value.toLocaleString()}` : "—"}
                                     </span>
                                   </div>
 
                                   {/* Card Content */}
-                                  <p className="text-xs text-slate-400 mb-3 line-clamp-2">
+                                  <p className="text-xs text-slate-400 mb-2 sm:mb-3 line-clamp-2">
                                     {lead.notes || "No description available"}
                                   </p>
 
                                   {/* Card Footer */}
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center space-x-2">
-                                      <div className={`w-6 h-6 ${getAssigneeColor(lead.assignedTo)} rounded-full flex items-center justify-center`}>
+                                      <div className={`w-5 h-5 sm:w-6 sm:h-6 ${getAssigneeColor(lead.assignedTo)} rounded-full flex items-center justify-center`}>
                                         <span className="text-white text-xs font-medium">
                                           {getAssigneeName(lead.assignedTo)}
                                         </span>
