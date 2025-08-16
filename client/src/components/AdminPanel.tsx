@@ -1,11 +1,7 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
 import { 
   Users, 
   Webhook, 
@@ -17,19 +13,10 @@ import {
   Trash2,
   TestTube
 } from "lucide-react";
-// Import components when needed
-// import UserForm from "./UserForm";
-// import WebhookForm from "./WebhookForm";
 import type { User, Webhook as WebhookType } from "@shared/schema";
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("users");
-  const [showUserForm, setShowUserForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [showWebhookForm, setShowWebhookForm] = useState(false);
-  const [editingWebhook, setEditingWebhook] = useState<WebhookType | null>(null);
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   console.log('AdminPanel rendering...');
 
