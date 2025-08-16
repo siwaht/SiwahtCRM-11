@@ -127,7 +127,7 @@ export default function EngineeringDashboard() {
             <SelectTrigger className="w-48 bg-slate-800/50 border-slate-700" data-testid="select-filter">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="bg-slate-800 border-slate-700">
               <SelectItem value="all">All Projects</SelectItem>
               <SelectItem value="in-progress">In Progress</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>

@@ -333,7 +333,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                   <SelectTrigger className="w-32 bg-slate-800/50 border-slate-700" data-testid="select-interaction-filter">
                     <SelectValue placeholder="All Types" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-slate-800 border-slate-700">
                     <SelectItem value="all">All Types</SelectItem>
                     <SelectItem value="note">Note</SelectItem>
                     <SelectItem value="call">Call</SelectItem>
@@ -529,7 +529,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     <SelectTrigger className="bg-slate-800/50 border-slate-700">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-slate-800 border-slate-700">
                       <SelectItem value="note">Note</SelectItem>
                       <SelectItem value="call">Call</SelectItem>
                       <SelectItem value="email">Email</SelectItem>

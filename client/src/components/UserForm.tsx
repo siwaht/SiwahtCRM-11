@@ -165,7 +165,7 @@ export default function UserForm({ user, onClose }: UserFormProps) {
                 <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-status">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="Active">Active</SelectItem>
                   <SelectItem value="Inactive">Inactive</SelectItem>
                 </SelectContent>
@@ -191,7 +191,7 @@ export default function UserForm({ user, onClose }: UserFormProps) {
               <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-role">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-slate-800 border-slate-700">
                 <SelectItem value="admin">Admin</SelectItem>
                 <SelectItem value="agent">Agent</SelectItem>
                 <SelectItem value="engineer">Engineer</SelectItem>

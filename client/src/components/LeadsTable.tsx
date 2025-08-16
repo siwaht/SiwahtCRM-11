@@ -191,7 +191,7 @@ export default function LeadsTable() {
                 <SelectTrigger className="bg-slate-800/50 border-slate-700" data-testid="select-status">
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="contacted">Contacted</SelectItem>
@@ -209,7 +209,7 @@ export default function LeadsTable() {
                 <SelectTrigger className="bg-slate-800/50 border-slate-700" data-testid="select-assignee">
                   <SelectValue placeholder="All Agents" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="all">All Agents</SelectItem>
                   {users.map((user: any) => (
                     <SelectItem key={user.id} value={user.id.toString()}>

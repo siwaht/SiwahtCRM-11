@@ -109,11 +109,11 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
 
             <div>
               <Label htmlFor="priority" className="text-slate-300">Priority</Label>
-              <Select value={formData.priority} onValueChange={(value) => handleChange("priority", value)}>
+              <Select value={formData.priority || ""} onValueChange={(value) => handleChange("priority", value)}>
                 <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-priority">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="High">High</SelectItem>
                   <SelectItem value="Medium">Medium</SelectItem>
                   <SelectItem value="Low">Low</SelectItem>
@@ -123,11 +123,11 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
 
             <div>
               <Label htmlFor="profitLevel" className="text-slate-300">Profit Level</Label>
-              <Select value={formData.profitLevel} onValueChange={(value) => handleChange("profitLevel", value)}>
+              <Select value={formData.profitLevel || ""} onValueChange={(value) => handleChange("profitLevel", value)}>
                 <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-profit-level">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="High Profit">High Profit</SelectItem>
                   <SelectItem value="Standard">Standard</SelectItem>
                   <SelectItem value="Low Margin">Low Margin</SelectItem>

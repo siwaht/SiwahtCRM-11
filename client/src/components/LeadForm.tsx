@@ -139,7 +139,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
                 <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-status">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="contacted">Contacted</SelectItem>
                   <SelectItem value="qualified">Qualified</SelectItem>
@@ -181,7 +181,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
                 <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-priority">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="low">Low</SelectItem>
                   <SelectItem value="medium">Medium</SelectItem>
                   <SelectItem value="high">High</SelectItem>
@@ -198,7 +198,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
                 <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-assigned-to">
                   <SelectValue placeholder="Select agent" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="unassigned">Unassigned</SelectItem>
                   {users.map((user: any) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
@@ -218,7 +218,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
                 <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-product">
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-slate-800 border-slate-700">
                   <SelectItem value="none">No product</SelectItem>
                   {products.map((product: any) => (
                     <SelectItem key={product.id} value={product.id.toString()}>
