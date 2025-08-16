@@ -6,9 +6,15 @@ import { z } from 'zod';
 // User Management
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
-  name: text('name').notNull(),
+  firstName: text('first_name'),
+  lastName: text('last_name'),
+  name: text('name').notNull(), // Keep for backward compatibility
   email: text('email').unique().notNull(),
   username: text('username').unique(),
+  phone: text('phone'),
+  address: text('address'),
+  profilePhoto: text('profile_photo'),
+  idDocument: text('id_document'),
   password: text('password').notNull(),
   role: text('role', { enum: ['admin', 'agent', 'engineer'] }).default('agent').notNull(),
   isActive: boolean('is_active').default(true),

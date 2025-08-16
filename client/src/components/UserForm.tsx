@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,10 +17,16 @@ interface UserFormProps {
 }
 
 export default function UserForm({ user, onClose }: UserFormProps) {
-  const [formData, setFormData] = useState<Partial<InsertUser>>({
+  const [formData, setFormData] = useState<Partial<InsertUser> & { profilePhoto?: File | null; idDocument?: File | null }>({
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
     name: user?.name || "",
     email: user?.email || "",
     username: user?.username || "",
+    phone: user?.phone || "",
+    address: user?.address || "",
+    profilePhoto: null,
+    idDocument: null,
     password: "",
     role: user?.role || "agent",
     isActive: user?.isActive ?? true,
@@ -70,7 +77,16 @@ export default function UserForm({ user, onClose }: UserFormProps) {
       return;
     }
 
-    mutation.mutate(formData);
+    // Create form data with auto-generated name from first + last name
+    const submissionData = {
+      ...formData,
+      name: `${formData.firstName} ${formData.lastName}`.trim() || formData.name,
+    };
+    
+    // Remove file fields from API submission (handle file uploads separately)
+    const { profilePhoto, idDocument, ...apiData } = submissionData;
+    
+    mutation.mutate(apiData);
   };
 
   const handleChange = (field: keyof InsertUser, value: any) => {
@@ -79,70 +95,113 @@ export default function UserForm({ user, onClose }: UserFormProps) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px] bg-slate-800 border-slate-700">
+      <DialogContent className="sm:max-w-[600px] bg-slate-800 border-slate-700 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-slate-100">
-            {user ? "Edit User" : "Add New User"}
+            {user ? "Edit Agent" : "Add New Agent"}
           </DialogTitle>
+          <p className="text-sm text-slate-400 mt-1">
+            Update agent information and permissions
+          </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="name" className="text-slate-300">Full Name *</Label>
+              <Label htmlFor="firstName" className="text-slate-300">First Name</Label>
               <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
+                id="firstName"
+                value={formData.firstName || ""}
+                onChange={(e) => handleChange("firstName", e.target.value)}
                 className="mt-1 bg-slate-800/50 border-slate-700"
                 required
-                data-testid="input-name"
+                data-testid="input-first-name"
               />
             </div>
 
             <div>
-              <Label htmlFor="email" className="text-slate-300">Email *</Label>
+              <Label htmlFor="lastName" className="text-slate-300">Last Name</Label>
               <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleChange("email", e.target.value)}
+                id="lastName"
+                value={formData.lastName || ""}
+                onChange={(e) => handleChange("lastName", e.target.value)}
                 className="mt-1 bg-slate-800/50 border-slate-700"
                 required
-                data-testid="input-email"
+                data-testid="input-last-name"
               />
             </div>
+          </div>
 
+          <div>
+            <Label htmlFor="email" className="text-slate-300">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => handleChange("email", e.target.value)}
+              className="mt-1 bg-slate-800/50 border-slate-700"
+              required
+              data-testid="input-email"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="username" className="text-slate-300">Username</Label>
+              <Label htmlFor="phone" className="text-slate-300">Phone Number</Label>
               <Input
-                id="username"
-                value={formData.username || ""}
-                onChange={(e) => handleChange("username", e.target.value)}
+                id="phone"
+                type="tel"
+                value={formData.phone || ""}
+                onChange={(e) => handleChange("phone", e.target.value)}
                 className="mt-1 bg-slate-800/50 border-slate-700"
-                placeholder="Optional"
-                data-testid="input-username"
+                placeholder="+1 (555) 123-4567"
+                data-testid="input-phone"
               />
             </div>
 
             <div>
-              <Label htmlFor="role" className="text-slate-300">Role</Label>
-              <Select value={formData.role} onValueChange={(value) => handleChange("role", value)}>
-                <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-role">
+              <Label htmlFor="status" className="text-slate-300">Status</Label>
+              <Select value={formData.isActive ? "Active" : "Inactive"} onValueChange={(value) => handleChange("isActive", value === "Active")}>
+                <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-status">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="agent">Agent</SelectItem>
-                  <SelectItem value="engineer">Engineer</SelectItem>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div>
+            <Label htmlFor="address" className="text-slate-300">Address</Label>
+            <Textarea
+              id="address"
+              value={formData.address || ""}
+              onChange={(e) => handleChange("address", e.target.value)}
+              className="mt-1 bg-slate-800/50 border-slate-700 min-h-[80px]"
+              placeholder="123 Main Street, City, State, ZIP"
+              data-testid="textarea-address"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="role" className="text-slate-300">Role</Label>
+            <Select value={formData.role} onValueChange={(value) => handleChange("role", value)}>
+              <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-role">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="agent">Agent</SelectItem>
+                <SelectItem value="engineer">Engineer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
             <Label htmlFor="password" className="text-slate-300">
-              Password {user ? "(leave empty to keep current)" : "*"}
+              New Password {user ? "(leave blank to keep current)" : ""}
             </Label>
             <Input
               id="password"
@@ -150,21 +209,33 @@ export default function UserForm({ user, onClose }: UserFormProps) {
               value={formData.password}
               onChange={(e) => handleChange("password", e.target.value)}
               className="mt-1 bg-slate-800/50 border-slate-700"
-              required={!user}
+              placeholder="Enter new password or leave blank"
               data-testid="input-password"
             />
           </div>
 
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="isActive"
-              checked={formData.isActive || false}
-              onCheckedChange={(checked) => handleChange("isActive", checked === true)}
-              data-testid="checkbox-active"
+          <div>
+            <Label htmlFor="profilePhoto" className="text-slate-300">Profile Photo</Label>
+            <Input
+              id="profilePhoto"
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleChange("profilePhoto", e.target.files?.[0] || null)}
+              className="mt-1 bg-slate-800/50 border-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+              data-testid="input-profile-photo"
             />
-            <Label htmlFor="isActive" className="text-slate-300">
-              Active User
-            </Label>
+          </div>
+
+          <div>
+            <Label htmlFor="idDocument" className="text-slate-300">ID Document</Label>
+            <Input
+              id="idDocument"
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => handleChange("idDocument", e.target.files?.[0] || null)}
+              className="mt-1 bg-slate-800/50 border-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700"
+              data-testid="input-id-document"
+            />
           </div>
 
           <div className="flex items-center justify-end space-x-3 pt-4">
@@ -182,7 +253,7 @@ export default function UserForm({ user, onClose }: UserFormProps) {
               className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
               data-testid="button-save"
             >
-              {mutation.isPending ? "Saving..." : (user ? "Update User" : "Create User")}
+              {mutation.isPending ? "Saving..." : (user ? "Update Agent" : "Create Agent")}
             </Button>
           </div>
         </form>
