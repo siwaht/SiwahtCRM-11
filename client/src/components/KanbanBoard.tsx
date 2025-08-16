@@ -119,8 +119,8 @@ export default function KanbanBoard() {
             
             return (
               <div key={status} className="flex-shrink-0 w-72 sm:w-80">
-                <Card className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50">
-                  <CardContent className="p-3 sm:p-4">
+                <Card className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50 h-fit">
+                  <CardContent className="p-3 sm:p-4 overflow-hidden">
                     {/* Column Header */}
                     <div className="flex items-center justify-between mb-3 sm:mb-4">
                       <div className="flex items-center space-x-2">
@@ -162,28 +162,28 @@ export default function KanbanBoard() {
                                   data-testid={`card-lead-${lead.id}`}
                                 >
                                   {/* Card Header */}
-                                  <div className="flex items-start justify-between mb-2">
-                                    <h4 className="font-medium text-xs sm:text-sm truncate flex-1 mr-2">{lead.company || lead.name}</h4>
-                                    <span className="text-xs text-slate-400 flex-shrink-0">
+                                  <div className="flex items-start justify-between mb-2 gap-2">
+                                    <h4 className="font-medium text-xs sm:text-sm line-clamp-1 flex-1 min-w-0 break-words">{lead.company || lead.name}</h4>
+                                    <span className="text-xs text-slate-400 flex-shrink-0 whitespace-nowrap">
                                       {lead.value ? `$${lead.value.toLocaleString()}` : "—"}
                                     </span>
                                   </div>
 
                                   {/* Card Content */}
-                                  <p className="text-xs text-slate-400 mb-2 sm:mb-3 line-clamp-2">
+                                  <p className="text-xs text-slate-400 mb-2 sm:mb-3 line-clamp-2 break-words overflow-hidden">
                                     {lead.notes || "No description available"}
                                   </p>
 
                                   {/* Card Footer */}
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex items-center space-x-2">
-                                      <div className={`w-5 h-5 sm:w-6 sm:h-6 ${getAssigneeColor(lead.assignedTo)} rounded-full flex items-center justify-center`}>
-                                        <span className="text-white text-xs font-medium">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="flex items-center space-x-2 min-w-0">
+                                      <div className={`w-5 h-5 sm:w-6 sm:h-6 ${getAssigneeColor(lead.assignedTo)} rounded-full flex items-center justify-center flex-shrink-0`}>
+                                        <span className="text-white text-xs font-medium truncate px-1">
                                           {getAssigneeName(lead.assignedTo)}
                                         </span>
                                       </div>
                                     </div>
-                                    <div className="flex space-x-1">
+                                    <div className="flex space-x-1 flex-shrink-0">
                                       {status === "contacted" && <Phone className="h-3 w-3 text-green-500" />}
                                       {status === "qualified" && <Calendar className="h-3 w-3 text-amber-500" />}
                                       {status === "proposal" && <File className="h-3 w-3 text-amber-500" />}
