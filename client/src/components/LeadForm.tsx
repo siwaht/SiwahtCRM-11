@@ -18,7 +18,7 @@ interface LeadFormProps {
 }
 
 export default function LeadForm({ lead, onClose }: LeadFormProps) {
-  const [formData, setFormData] = useState<Partial<InsertLead>>({
+  const [formData, setFormData] = useState<Partial<Omit<InsertLead, 'followUpDate'>> & { followUpDate?: string }>({
     name: lead?.name || "",
     email: lead?.email || "",
     phone: lead?.phone || "",
@@ -72,10 +72,10 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
       const submitData = {
         ...formData,
         productIds: selectedProducts,
-        followUpDate: formData.followUpDate ? new Date(formData.followUpDate) : null,
+        followUpDate: formData.followUpDate ? new Date(formData.followUpDate) : undefined,
         tags: formData.tags || [],
         // Ensure value is within valid range or null
-        value: formData.value && formData.value <= 8388607 ? formData.value : null
+        value: formData.value && formData.value <= 8388607 ? formData.value : undefined
       };
       
       const result: any = await (lead ? 
@@ -118,7 +118,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
     }
   };
 
-  const handleChange = (field: keyof InsertLead, value: any) => {
+  const handleChange = (field: keyof (Omit<InsertLead, 'followUpDate'> & { followUpDate?: string }), value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
   
@@ -315,7 +315,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
               <Input
                 id="followUpDate"
                 type="date"
-                value={formData.followUpDate?.toString() || ""}
+                value={formData.followUpDate || ""}
                 onChange={(e) => handleChange("followUpDate", e.target.value)}
                 placeholder="dd-mm-yyyy"
                 className="mt-1 bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400"
