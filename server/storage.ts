@@ -34,6 +34,7 @@ export interface IStorage {
   updateUserStorage(userId: number, storageUsed: number): Promise<void>;
   addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number; description?: string | null }): Promise<void>;
   getAllUsers(): Promise<User[]>;
+  getAvailableEngineers(): Promise<User[]>;
   deleteUser(id: number): Promise<boolean>;
 
   // Products
@@ -158,6 +159,12 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount || 0) > 0;
   }
 
+  async getAvailableEngineers(): Promise<User[]> {
+    return await db.select().from(users)
+      .where(and(eq(users.role, 'engineer'), eq(users.isActive, true)))
+      .orderBy(asc(users.name));
+  }
+
   async updateUserStorage(userId: number, storageUsed: number): Promise<void> {
     try {
       await db
@@ -262,6 +269,33 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLead(insertLead: InsertLead): Promise<Lead> {
+    // Auto-assign engineer if not already assigned
+    if (!insertLead.assignedEngineer) {
+      const engineers = await this.getAvailableEngineers();
+      if (engineers.length > 0) {
+        // Get lead counts for each engineer to find the one with the least load
+        const engineerLoads = await Promise.all(
+          engineers.map(async (engineer) => {
+            const [result] = await db.select({ count: sql<number>`count(*)` })
+              .from(leads)
+              .where(eq(leads.assignedEngineer, engineer.id));
+            return {
+              engineerId: engineer.id,
+              count: result?.count || 0
+            };
+          })
+        );
+        
+        // Find engineer with minimum load
+        const minLoad = Math.min(...engineerLoads.map(load => load.count));
+        const availableEngineer = engineerLoads.find(load => load.count === minLoad);
+        
+        if (availableEngineer) {
+          insertLead.assignedEngineer = availableEngineer.engineerId;
+        }
+      }
+    }
+    
     const [lead] = await db.insert(leads).values(insertLead).returning();
     return lead;
   }
