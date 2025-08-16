@@ -61,40 +61,18 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
     }
   }, [leadWithProducts]);
 
-  const mutation = useMutation({
-    mutationFn: async (data: Partial<InsertLead> & { productIds: number[] }) => {
-      if (lead) {
-        return await apiRequest("PUT", `/api/leads/${lead.id}`, data);
-      } else {
-        return await apiRequest("POST", "/api/leads", data);
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      toast({
-        title: "Success",
-        description: lead ? "Lead updated successfully" : "Lead created successfully",
-      });
-      onClose();
-    },
-    onError: (error) => {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: `Failed to ${lead ? "update" : "create"} lead`,
-      });
-    },
-  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
     try {
-      // First create the lead
+      // First create or update the lead
       const submitData = {
         ...formData,
         productIds: selectedProducts,
-        followUpDate: formData.followUpDate ? new Date(formData.followUpDate) : null,
+        followUpDate: formData.followUpDate ? formData.followUpDate : null,
         tags: formData.tags || []
       };
       
@@ -103,18 +81,20 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
         apiRequest("POST", "/api/leads", submitData)
       );
       
-      // Then upload files if any are selected
-      if (selectedFiles && selectedFiles.length > 0) {
-        const leadId = result.id || lead?.id;
-        if (leadId) {
-          for (const file of Array.from(selectedFiles)) {
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('leadId', leadId.toString());
-            formData.append('description', fileDescription || file.name);
-            
-            await apiRequest('POST', '/api/attachments', formData);
-          }
+      const leadId = result?.id || lead?.id;
+      
+      // Then upload files if any are selected and we have a lead ID
+      if (selectedFiles && selectedFiles.length > 0 && leadId) {
+        for (const file of Array.from(selectedFiles)) {
+          const fileFormData = new FormData();
+          fileFormData.append('file', file);
+          fileFormData.append('description', fileDescription || file.name);
+          
+          // Use the existing lead attachments endpoint
+          await fetch(`/api/leads/${leadId}/attachments`, {
+            method: 'POST',
+            body: fileFormData,
+          });
         }
       }
       
@@ -131,6 +111,8 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
         title: "Error",
         description: `Failed to ${lead ? "update" : "create"} lead`,
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -430,11 +412,11 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
           <div className="flex justify-end pt-4">
             <Button
               type="submit"
-              disabled={mutation.isPending}
+              disabled={isSubmitting}
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2"
               data-testid="button-submit"
             >
-              {mutation.isPending ? "Submitting..." : "Submit"}
+              {isSubmitting ? "Submitting..." : "Submit"}
             </Button>
           </div>
         </form>
