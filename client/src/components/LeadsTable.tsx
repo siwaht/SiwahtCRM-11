@@ -206,7 +206,7 @@ export default function LeadsTable() {
             <div className="col-span-2">Contact</div>
             <div className="col-span-1">Status</div>
             <div className="col-span-1">Priority</div>
-            <div className="col-span-2">Products</div>
+            <div className="col-span-1">Products</div>
             <div className="col-span-1">Value</div>
             <div className="col-span-1">Follow-up</div>
             <div className="col-span-1">Assigned</div>
@@ -285,7 +285,7 @@ export default function LeadsTable() {
                 </div>
                 
                 {/* Products */}
-                <div className="col-span-2">
+                <div className="col-span-1">
                   <div className="flex flex-wrap gap-1">
                     {lead.status === 'won' && (
                       <>
