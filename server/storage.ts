@@ -341,6 +341,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLead(id: number, updateData: Partial<InsertLead>, productIds?: number[]): Promise<Lead | undefined> {
+    // Get current lead data to check if engineer assignment is needed
+    const currentLead = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+    if (!currentLead.length) return undefined;
+    
+    // Auto-assign engineer if not already assigned and not being explicitly set
+    if (!currentLead[0].assignedEngineer && !updateData.assignedEngineer) {
+      console.log('Auto-assigning engineer during update...');
+      const engineers = await this.getAvailableEngineers();
+      console.log('Available engineers:', engineers);
+      
+      if (engineers.length > 0) {
+        // Get lead counts for each engineer to find the one with the least load
+        const engineerLoads = await Promise.all(
+          engineers.map(async (engineer) => {
+            const [result] = await db.select({ count: sql<number>`count(*)` })
+              .from(leads)
+              .where(eq(leads.assignedEngineer, engineer.id));
+            return {
+              engineerId: engineer.id,
+              count: result?.count || 0
+            };
+          })
+        );
+        
+        console.log('Engineer loads:', engineerLoads);
+        
+        // Find engineer with minimum load
+        const minLoad = Math.min(...engineerLoads.map(load => load.count));
+        const availableEngineer = engineerLoads.find(load => load.count === minLoad);
+        
+        console.log('Selected engineer for update:', availableEngineer);
+        
+        if (availableEngineer) {
+          updateData.assignedEngineer = availableEngineer.engineerId;
+          console.log('Assigned engineer ID during update:', updateData.assignedEngineer);
+        }
+      }
+    }
+    
     const [lead] = await db.update(leads).set(updateData).where(eq(leads.id, id)).returning();
     
     // Update products if provided
