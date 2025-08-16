@@ -32,7 +32,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Session middleware with PostgreSQL store
   app.use(session({
     store: new PostgreSqlStore({
-      pool: pool,
+      pool: pool as any,
       tableName: 'session',
       createTableIfMissing: true,
     }),

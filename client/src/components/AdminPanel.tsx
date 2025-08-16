@@ -18,25 +18,15 @@ import type { User, Webhook as WebhookType } from "@shared/schema";
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("users");
 
-  console.log('AdminPanel rendering...');
-
   // Users queries and mutations
   const { data: users = [], isLoading: usersLoading, error: usersError } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
 
-  console.log('Users data:', users);
-  console.log('Users loading:', usersLoading);
-  console.log('Users error:', usersError);
-
   // Webhooks queries and mutations
   const { data: webhooks = [], isLoading: webhooksLoading, error: webhooksError } = useQuery<WebhookType[]>({
     queryKey: ["/api/webhooks"],
   });
-
-  console.log('Webhooks data:', webhooks);
-  console.log('Webhooks loading:', webhooksLoading);
-  console.log('Webhooks error:', webhooksError);
 
   return (
     <div className="space-y-6">
@@ -45,14 +35,6 @@ export default function AdminPanel() {
         <h2 className="text-2xl font-bold text-white">Admin Panel</h2>
         <p className="text-slate-400 mt-1">System configuration and user management</p>
         
-        {/* Debug Info */}
-        <div className="mt-4 p-4 bg-blue-500/20 border border-blue-500/50 rounded-lg">
-          <p className="text-blue-400 text-sm">AdminPanel Debug:</p>
-          <p className="text-blue-300 text-xs">Users: {users.length} items, Loading: {usersLoading ? 'yes' : 'no'}</p>
-          <p className="text-blue-300 text-xs">Webhooks: {webhooks.length} items, Loading: {webhooksLoading ? 'yes' : 'no'}</p>
-          {usersError && <p className="text-red-300 text-xs">Users Error: {String(usersError)}</p>}
-          {webhooksError && <p className="text-red-300 text-xs">Webhooks Error: {String(webhooksError)}</p>}
-        </div>
       </div>
 
       {/* Simple Tabs */}

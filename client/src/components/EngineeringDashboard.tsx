@@ -39,7 +39,7 @@ export default function EngineeringDashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: leads = [], isLoading } = useQuery({
+  const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads", { status: "won" }],
   });
 
@@ -73,7 +73,7 @@ export default function EngineeringDashboard() {
     // Apply filter
     switch (selectedFilter) {
       case "in-progress":
-        return lead.engineeringProgress > 0 && lead.engineeringProgress < 100;
+        return (lead.engineeringProgress || 0) > 0 && (lead.engineeringProgress || 0) < 100;
       case "completed":
         return lead.engineeringProgress === 100;
       default:
@@ -139,7 +139,7 @@ export default function EngineeringDashboard() {
       {/* Project Cards */}
       <div className="space-y-6">
         {filteredLeads.map((lead: Lead) => {
-          const projectStatus = getProjectStatus(lead.engineeringProgress);
+          const projectStatus = getProjectStatus(lead.engineeringProgress || 0);
           const StatusIcon = statusIcons[projectStatus as keyof typeof statusIcons];
           
           return (
@@ -204,8 +204,8 @@ export default function EngineeringDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleProgressUpdate(lead.id, Math.min(100, lead.engineeringProgress + 25))}
-                      disabled={lead.engineeringProgress >= 100}
+                      onClick={() => handleProgressUpdate(lead.id, Math.min(100, (lead.engineeringProgress || 0) + 25))}
+                      disabled={(lead.engineeringProgress || 0) >= 100}
                       data-testid={`button-update-progress-${lead.id}`}
                     >
                       +25%
@@ -214,7 +214,7 @@ export default function EngineeringDashboard() {
                       variant="outline"
                       size="sm"
                       onClick={() => handleProgressUpdate(lead.id, 100)}
-                      disabled={lead.engineeringProgress >= 100}
+                      disabled={(lead.engineeringProgress || 0) >= 100}
                       data-testid={`button-complete-${lead.id}`}
                     >
                       Mark Complete

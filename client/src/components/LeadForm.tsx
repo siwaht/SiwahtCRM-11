@@ -34,11 +34,11 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<any[]>({
     queryKey: ["/api/users"],
   });
 
-  const { data: products = [] } = useQuery({
+  const { data: products = [] } = useQuery<any[]>({
     queryKey: ["/api/products"],
   });
 
@@ -177,7 +177,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
 
             <div>
               <Label htmlFor="priority" className="text-slate-300">Priority</Label>
-              <Select value={formData.priority} onValueChange={(value) => handleChange("priority", value)}>
+              <Select value={formData.priority || ''} onValueChange={(value) => handleChange("priority", value)}>
                 <SelectTrigger className="mt-1 bg-slate-800/50 border-slate-700" data-testid="select-priority">
                   <SelectValue />
                 </SelectTrigger>

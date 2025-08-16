@@ -1,4 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
+
+interface AnalyticsData {
+  totalLeads: number;
+  conversionRate: number;
+  pipelineValue: number;
+  activeProjects: number;
+  leadsByStatus: { status: string; count: number }[];
+  revenueByMonth: { month: string; revenue: number }[];
+}
 import { Card, CardContent } from "@/components/ui/card";
 import { 
   Users, 
@@ -14,7 +23,7 @@ import {
 } from "lucide-react";
 
 export default function Dashboard() {
-  const { data: analytics, isLoading } = useQuery({
+  const { data: analytics, isLoading } = useQuery<AnalyticsData>({
     queryKey: ["/api/analytics"],
   });
 
