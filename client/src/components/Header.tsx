@@ -206,7 +206,18 @@ export default function Header() {
                   <User className="h-4 w-4 text-white" />
                 </div>
                 <div className="hidden sm:block">
-                  <p className="text-sm font-medium text-white" data-testid="text-username">{user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'User'}</p>
+                  <p className="text-sm font-medium text-white" data-testid="text-username">
+                    {(() => {
+                      if (user?.name) return user.name;
+                      const firstName = (user?.firstName || '').trim();
+                      const lastName = (user?.lastName || '').trim();
+                      const fullName = `${firstName} ${lastName}`.trim();
+                      if (fullName) return fullName;
+                      if (user?.username) return user.username;
+                      if (user?.email) return user.email.split('@')[0];
+                      return user?.role ? `${user.role.charAt(0).toUpperCase() + user.role.slice(1)}` : 'Team Member';
+                    })()}
+                  </p>
                   <p className="text-xs text-slate-400 capitalize" data-testid="text-userrole">{user?.role}</p>
                 </div>
               </div>
@@ -341,7 +352,16 @@ export default function Header() {
                   <div className="flex-1">
                     <div className="flex items-center gap-4 mb-3">
                       <h2 className="text-2xl font-bold text-white">
-                        {user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Unknown User'}
+                        {(() => {
+                          if (user?.name) return user.name;
+                          const firstName = (user?.firstName || '').trim();
+                          const lastName = (user?.lastName || '').trim();
+                          const fullName = `${firstName} ${lastName}`.trim();
+                          if (fullName) return fullName;
+                          if (user?.username) return user.username;
+                          if (user?.email) return user.email.split('@')[0];
+                          return user?.role ? `${user.role.charAt(0).toUpperCase() + user.role.slice(1)}` : 'Team Member';
+                        })()}
                       </h2>
                       <Badge className={`${getRoleColor(user?.role || '')} border text-sm px-3 py-1 font-medium`}>
                         {user?.role || 'User'}
@@ -379,7 +399,16 @@ export default function Header() {
                     </Label>
                     <div className="bg-slate-800/70 border border-slate-600/50 rounded-lg p-3">
                       <p className="text-white font-medium">
-                        {user?.name || `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Not provided'}
+                        {(() => {
+                          if (user?.name) return user.name;
+                          const firstName = (user?.firstName || '').trim();
+                          const lastName = (user?.lastName || '').trim();
+                          const fullName = `${firstName} ${lastName}`.trim();
+                          if (fullName) return fullName;
+                          if (user?.username) return user.username;
+                          if (user?.email) return user.email.split('@')[0];
+                          return 'Not provided';
+                        })()}
                       </p>
                     </div>
                   </div>
