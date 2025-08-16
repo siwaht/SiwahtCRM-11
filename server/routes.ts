@@ -248,6 +248,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Extract productIds from request body before validation
       const { productIds, ...leadDataRaw } = req.body;
       
+      // Convert followUpDate string to Date object if present
+      if (leadDataRaw.followUpDate && typeof leadDataRaw.followUpDate === 'string') {
+        leadDataRaw.followUpDate = new Date(leadDataRaw.followUpDate);
+      }
+      
       // Validate lead data (without productIds)
       const leadData = insertLeadSchema.parse(leadDataRaw);
       
@@ -269,6 +274,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       // Extract productIds from request body before validation
       const { productIds, ...leadDataRaw } = req.body;
+      
+      // Convert followUpDate string to Date object if present
+      if (leadDataRaw.followUpDate && typeof leadDataRaw.followUpDate === 'string') {
+        leadDataRaw.followUpDate = new Date(leadDataRaw.followUpDate);
+      }
+      
       const originalLead = await storage.getLead(id);
       
       const lead = await storage.updateLead(id, leadDataRaw, productIds);
