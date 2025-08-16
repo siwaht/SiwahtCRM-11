@@ -801,6 +801,10 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     }
                   }
                   
+                  // Always invalidate attachments query after upload
+                  queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+                  queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+                  
                   // Create interaction if description provided or quick action selected
                   if (fileDescription.trim() || selectedQuickAction) {
                     const interactionText = fileDescription.trim() 
@@ -818,16 +822,12 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                       });
                       
                       queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/interactions`] });
-                      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
                       setSelectedQuickAction(null);
                       setFileDescription("");
                     } catch (error) {
                       console.error('Error creating interaction:', error);
                     }
                   }
-                  
-                  // Invalidate storage query to refresh usage
-                  queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
                   
                   toast({
                     title: "Success",
