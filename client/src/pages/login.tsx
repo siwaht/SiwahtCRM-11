@@ -90,26 +90,6 @@ export default function Login() {
           </CardContent>
         </Card>
 
-        {/* Demo Credentials */}
-        <Card className="mt-6 bg-slate-800/20 border-slate-700/30">
-          <CardContent className="p-4">
-            <p className="text-xs text-slate-400 text-center mb-2">Demo Credentials:</p>
-            <div className="grid grid-cols-3 gap-2 text-xs">
-              <div className="text-center">
-                <p className="text-slate-300 font-medium">Admin</p>
-                <p className="text-slate-500">admin@siwaht.ai</p>
-              </div>
-              <div className="text-center">
-                <p className="text-slate-300 font-medium">Agent</p>
-                <p className="text-slate-500">agent@siwaht.ai</p>
-              </div>
-              <div className="text-center">
-                <p className="text-slate-300 font-medium">Engineer</p>
-                <p className="text-slate-500">eng@siwaht.ai</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
