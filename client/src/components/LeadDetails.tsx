@@ -58,6 +58,10 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     queryKey: ["/api/users"],
   });
 
+  const { data: currentUser } = useQuery<any>({
+    queryKey: ["/api/me"],
+  });
+
   const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
@@ -189,6 +193,24 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     if (!assignedEngineer) return "Unassigned";
     const user = users.find((u: any) => u.id === assignedEngineer);
     return user ? user.name : "Unknown";
+  };
+
+  const getInteractionUserName = (userId: number | null) => {
+    if (!userId) return "Unknown";
+    
+    // Check if it's the current user first
+    if (currentUser && currentUser.id === userId) {
+      return `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'You';
+    }
+    
+    // Try to find in users list
+    const user = users.find((u: any) => u.id === userId);
+    if (user) {
+      return user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
+    }
+    
+    // Fallback
+    return "Team Member";
   };
 
   const handleAddInteraction = () => {
@@ -505,7 +527,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                                 {interaction.type === 'urgent' ? 'Urgent Alert' : interaction.type}
                               </h4>
                               <p className="text-xs text-slate-400">
-                                by {getAssigneeName(interaction.userId)}
+                                by {getInteractionUserName(interaction.userId)}
                               </p>
                             </div>
                             <div className="text-xs text-slate-400 text-right">
