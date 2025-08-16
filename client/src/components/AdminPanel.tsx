@@ -395,64 +395,179 @@ export default function AdminPanel() {
         )}
 
         {activeTab === "mcp" && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-white">AI Integration (MCP)</h3>
+          <div className="space-y-6">
+            {/* AI Agent Connectivity */}
             <div className="space-y-4">
-              <div className="p-4 bg-slate-800/50 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-white font-medium">WebSocket Server Status</p>
-                    <p className="text-slate-400 text-sm">Model Context Protocol v1.0.0</p>
-                  </div>
-                  <Badge className="bg-emerald-500/20 text-emerald-400">Online</Badge>
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-white">AI Agent Connectivity</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                  <h4 className="text-slate-300 text-sm font-medium mb-2">Connected Agents</h4>
+                  <div className="text-2xl font-bold text-white mb-1">0</div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <p className="text-slate-400">Port:</p>
-                    <p className="text-white">5003</p>
+                
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                  <h4 className="text-slate-300 text-sm font-medium mb-2">WebSocket URL</h4>
+                  <div className="bg-slate-900 p-2 rounded font-mono text-sm text-emerald-400">
+                    ws://localhost:5001
                   </div>
-                  <div>
-                    <p className="text-slate-400">Host:</p>
-                    <p className="text-white">0.0.0.0</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400">Protocol:</p>
-                    <p className="text-white">WebSocket</p>
-                  </div>
-                  <div>
-                    <p className="text-slate-400">Capabilities:</p>
-                    <p className="text-white">Logging, Prompts, Resources, Tools</p>
+                </div>
+                
+                <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                  <h4 className="text-slate-300 text-sm font-medium mb-2">Available Commands</h4>
+                  <div className="flex flex-wrap gap-1">
+                    <Badge className="bg-blue-500/20 text-blue-400 text-xs">create_lead</Badge>
+                    <Badge className="bg-green-500/20 text-green-400 text-xs">update_lead</Badge>
+                    <Badge className="bg-purple-500/20 text-purple-400 text-xs">get_analytics</Badge>
+                    <Badge className="bg-orange-500/20 text-orange-400 text-xs">manage_products</Badge>
                   </div>
                 </div>
               </div>
-              
-              <div className="p-4 bg-slate-800/50 rounded-lg">
-                <h4 className="text-white font-medium mb-2">Available Capabilities</h4>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                    <span className="text-slate-300">Logging</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                    <span className="text-slate-300">Prompts</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                    <span className="text-slate-300">Resources</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                    <span className="text-slate-300">Tools</span>
-                  </div>
-                </div>
+            </div>
+
+            {/* MCP Server Code & Configuration */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                <h3 className="text-lg font-semibold text-white">MCP Server Code & Configuration</h3>
               </div>
               
-              <div className="p-4 bg-slate-800/50 rounded-lg">
-                <h4 className="text-white font-medium mb-2">Connection Info</h4>
-                <p className="text-slate-400 text-sm mb-2">AI agents can connect to this MCP server using:</p>
-                <div className="bg-slate-900 p-3 rounded font-mono text-sm">
-                  <p className="text-slate-300">ws://localhost:5003</p>
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                <div className="mb-4">
+                  <h4 className="text-white font-medium mb-2">Claude Desktop Configuration</h4>
+                  <p className="text-slate-400 text-sm mb-4">Add this to your Claude Desktop config file:</p>
+                </div>
+                
+                <div className="relative bg-slate-900 rounded-lg p-4 border border-slate-700">
+                  <pre className="text-sm text-slate-300 font-mono overflow-x-auto">
+                    <code>{`{
+  "mcpServers": {
+    "siwaht-crm": {
+      "command": "node",
+      "args": ["/path/to/mcp-server-siwaht.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}`}</code>
+                  </pre>
+                  <Button
+                    onClick={() => {
+                      const configText = `{
+  "mcpServers": {
+    "siwaht-crm": {
+      "command": "node",
+      "args": ["/path/to/mcp-server-siwaht.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}`;
+                      navigator.clipboard.writeText(configText);
+                      toast({
+                        title: "Copied!",
+                        description: "Configuration copied to clipboard",
+                      });
+                    }}
+                    className="absolute top-2 right-2 bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 text-xs"
+                  >
+                    Copy Configuration
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Package.json for MCP Server */}
+            <div className="space-y-4">
+              <h4 className="text-white font-medium">Package.json for MCP Server</h4>
+              <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+                <div className="relative bg-slate-900 rounded-lg p-4 border border-slate-700">
+                  <pre className="text-sm text-slate-300 font-mono overflow-x-auto">
+                    <code>{`{
+  "name": "@siwaht/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Siwaht CRM AI Integration",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ws": "^8.18.0",
+    "express": "^4.21.0"
+  },
+  "keywords": ["mcp", "ai", "crm", "siwaht"],
+  "author": "Siwaht Team",
+  "license": "MIT"
+}`}</code>
+                  </pre>
+                  <Button
+                    onClick={() => {
+                      const packageText = `{
+  "name": "@siwaht/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Siwaht CRM AI Integration",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "ws": "^8.18.0",
+    "express": "^4.21.0"
+  },
+  "keywords": ["mcp", "ai", "crm", "siwaht"],
+  "author": "Siwaht Team",
+  "license": "MIT"
+}`;
+                      navigator.clipboard.writeText(packageText);
+                      toast({
+                        title: "Copied!",
+                        description: "Package.json copied to clipboard",
+                      });
+                    }}
+                    className="absolute top-2 right-2 bg-slate-700 hover:bg-slate-600 text-slate-300 px-3 py-1 text-xs"
+                  >
+                    Copy Package.json
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Server Status */}
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-white font-medium">MCP Server Status</h4>
+                  <p className="text-slate-400 text-sm">Model Context Protocol v1.0.0</p>
+                </div>
+                <Badge className="bg-emerald-500/20 text-emerald-400">Online</Badge>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4 text-sm">
+                <div>
+                  <p className="text-slate-400">Port:</p>
+                  <p className="text-white">5003</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Host:</p>
+                  <p className="text-white">0.0.0.0</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Protocol:</p>
+                  <p className="text-white">WebSocket</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Capabilities:</p>
+                  <p className="text-white">Logging, Tools, Resources</p>
                 </div>
               </div>
             </div>
