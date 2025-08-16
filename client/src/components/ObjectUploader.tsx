@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
-import { DashboardModal } from "@uppy/react";
+import { Dashboard } from "@uppy/react";
 import "@uppy/core/dist/style.min.css";
 import "@uppy/dashboard/dist/style.min.css";
 import AwsS3 from "@uppy/aws-s3";
@@ -140,17 +140,32 @@ export function ObjectUploader({
         <p className="text-red-400 text-sm mt-2">Storage limit reached. Please contact support to upgrade.</p>
       )}
 
-      <DashboardModal
-        uppy={uppy}
-        open={showUploader}
-        onRequestClose={() => setShowUploader(false)}
-        proudlyDisplayPoweredByUppy={false}
-        showProgressDetails={true}
-        hideUploadButton={false}
-        hideCancelButton={false}
-        hideRetryButton={false}
-        hidePauseResumeButton={false}
-      />
+      {showUploader && (
+        <div className="mt-4 p-4 bg-slate-900/50 border border-slate-600/50 rounded-lg">
+          <div className="flex justify-between items-center mb-3">
+            <span className="text-sm text-slate-300">Upload Files</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowUploader(false)}
+              className="text-slate-400 hover:text-slate-200 p-1"
+            >
+              ×
+            </Button>
+          </div>
+          <Dashboard
+            uppy={uppy}
+            proudlyDisplayPoweredByUppy={false}
+            showProgressDetails={true}
+            hideUploadButton={false}
+            hideCancelButton={false}
+            hideRetryButton={false}
+            hidePauseResumeButton={false}
+            theme="dark"
+            height={300}
+          />
+        </div>
+      )}
     </div>
   );
 }

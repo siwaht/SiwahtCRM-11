@@ -758,13 +758,6 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                         description: `${result.successful?.length || 0} file(s) uploaded successfully`,
                       });
                       
-                      // Auto-close uploader after successful upload
-                      setTimeout(() => {
-                        const closeButton = document.querySelector('.uppy-Dashboard-close');
-                        if (closeButton) {
-                          (closeButton as HTMLElement).click();
-                        }
-                      }, 1000);
                     }}
                     buttonClassName="bg-green-600 hover:bg-green-700 px-6"
                   >
