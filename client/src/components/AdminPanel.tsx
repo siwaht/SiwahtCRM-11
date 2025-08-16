@@ -308,8 +308,8 @@ export default function AdminPanel() {
             </div>
 
             {/* Search and Filter Bar */}
-            <div className="flex gap-4 items-center">
-              <div className="relative flex-1">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 sm:items-center">
+              <div className="relative flex-1 order-1 sm:order-none">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
                 <Input
                   placeholder="Search agents by name or email..."
@@ -500,15 +500,19 @@ export default function AdminPanel() {
         )}
 
         {activeTab === "webhooks" && (
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="text-lg font-semibold text-white">Webhook Configuration</h3>
+          <div className="space-y-4 sm:space-y-6">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
+              <div>
+                <h3 className="text-lg sm:text-xl font-semibold text-white">Webhook Configuration</h3>
+                <p className="text-slate-400 text-sm sm:text-base">Manage external integrations and notifications</p>
+              </div>
               <Button
                 onClick={() => {
                   setEditingWebhook(null);
                   setShowWebhookForm(true);
                 }}
-                className="bg-indigo-600 hover:bg-indigo-700"
+                className="bg-indigo-600 hover:bg-indigo-700 w-full sm:w-auto"
+                data-testid="button-add-webhook"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Webhook
@@ -516,18 +520,82 @@ export default function AdminPanel() {
             </div>
 
             {webhooksLoading ? (
-              <p className="text-slate-400">Loading webhooks...</p>
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+                <p className="text-slate-400">Loading webhooks...</p>
+              </div>
             ) : webhooks.length === 0 ? (
-              <p className="text-slate-400">No webhooks configured</p>
+              <div className="text-center py-12">
+                <Webhook className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-400 mb-4">No webhooks configured</p>
+                <p className="text-slate-500 text-sm">Add your first webhook to start receiving external notifications</p>
+              </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-3 sm:space-y-4">
                 {webhooks.map((webhook) => (
-                  <div key={webhook.id} className="p-4 bg-slate-800/50 rounded-lg">
-                    <div className="flex items-center justify-between">
+                  <div key={webhook.id} className="p-4 sm:p-6 bg-slate-800/50 border border-slate-700/30 rounded-lg" data-testid={`webhook-item-${webhook.id}`}>
+                    {/* Mobile Layout */}
+                    <div className="sm:hidden space-y-4">
                       <div>
-                        <p className="font-medium text-white">{webhook.name}</p>
-                        <p className="text-sm text-slate-400 truncate">{webhook.url}</p>
-                        <Badge className="mt-1">{webhook.isActive ? "Active" : "Inactive"}</Badge>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-white text-base">{webhook.name}</h4>
+                          <Badge className={`text-xs px-2 py-1 ${webhook.isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-400/30' : 'bg-slate-500/20 text-slate-400 border-slate-400/30'}`}>
+                            {webhook.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-400 break-all mb-3">{webhook.url}</p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <Button 
+                          size="sm" 
+                          onClick={() => testWebhookMutation.mutate(webhook.id)}
+                          disabled={testWebhookMutation.isPending}
+                          className={`text-xs ${testWebhookMutation.isPending ? 'animate-pulse' : ''}`}
+                          data-testid={`button-test-webhook-${webhook.id}`}
+                        >
+                          <TestTube className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden xs:inline">Test</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setEditingWebhook(webhook);
+                            setShowWebhookForm(true);
+                          }}
+                          className="text-xs"
+                          data-testid={`button-edit-webhook-${webhook.id}`}
+                        >
+                          <Edit className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden xs:inline">Edit</span>
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this webhook?')) {
+                              deleteWebhookMutation.mutate(webhook.id);
+                            }
+                          }}
+                          disabled={deleteWebhookMutation.isPending}
+                          className="text-xs"
+                          data-testid={`button-delete-webhook-${webhook.id}`}
+                        >
+                          <Trash2 className="h-3 w-3 sm:mr-1" />
+                          <span className="hidden xs:inline">Delete</span>
+                        </Button>
+                      </div>
+                    </div>
+                    
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h4 className="font-medium text-white text-lg">{webhook.name}</h4>
+                          <Badge className={`text-sm px-3 py-1 ${webhook.isActive ? 'bg-emerald-500/20 text-emerald-400 border-emerald-400/30' : 'bg-slate-500/20 text-slate-400 border-slate-400/30'}`}>
+                            {webhook.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-slate-400 truncate pr-4">{webhook.url}</p>
                       </div>
                       <div className="flex space-x-2">
                         <Button 
@@ -537,7 +605,7 @@ export default function AdminPanel() {
                           className={`${testWebhookMutation.isPending ? 'animate-pulse' : ''}`}
                           data-testid={`button-test-webhook-${webhook.id}`}
                         >
-                          <TestTube className="h-4 w-4" />
+                          <TestTube className="h-4 w-4 mr-2" />
                           {testWebhookMutation.isPending ? 'Testing...' : 'Test'}
                         </Button>
                         <Button
@@ -548,7 +616,7 @@ export default function AdminPanel() {
                           }}
                           data-testid={`button-edit-webhook-${webhook.id}`}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-4 w-4 mr-2" />
                           Edit
                         </Button>
                         <Button 
@@ -562,7 +630,7 @@ export default function AdminPanel() {
                           disabled={deleteWebhookMutation.isPending}
                           data-testid={`button-delete-webhook-${webhook.id}`}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 mr-2" />
                           {deleteWebhookMutation.isPending ? 'Deleting...' : 'Delete'}
                         </Button>
                       </div>
