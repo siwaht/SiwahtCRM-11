@@ -1,58 +1,71 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import type { Webhook, InsertWebhook } from "@shared/schema";
+import type { Webhook } from "@shared/schema";
+import { X } from "lucide-react";
+
+const webhookSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  url: z.string().url("Valid URL is required"),
+  events: z.array(z.string()).min(1, "At least one event is required"),
+  isActive: z.boolean(),
+  secret: z.string().optional(),
+});
+
+type WebhookFormData = z.infer<typeof webhookSchema>;
+
+const availableEvents = [
+  { id: "lead.created", label: "Lead Created" },
+  { id: "lead.updated", label: "Lead Updated" },
+  { id: "lead.status_changed", label: "Lead Status Changed" },
+  { id: "lead.assigned", label: "Lead Assigned" },
+  { id: "project.created", label: "Project Created" },
+  { id: "project.completed", label: "Project Completed" },
+];
 
 interface WebhookFormProps {
   webhook?: Webhook | null;
   onClose: () => void;
 }
 
-const availableEvents = [
-  "lead.created",
-  "lead.updated", 
-  "lead.status_changed",
-  "interaction.created",
-  "*"
-];
-
 export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
-  const [formData, setFormData] = useState<Partial<InsertWebhook>>({
-    name: webhook?.name || "",
-    url: webhook?.url || "",
-    events: webhook?.events || [],
-    headers: webhook?.headers || {},
-    secret: webhook?.secret || "",
-    isActive: webhook?.isActive ?? true,
-  });
-
-  const [headersText, setHeadersText] = useState(
-    webhook?.headers ? JSON.stringify(webhook.headers, null, 2) : ""
+  const [selectedEvents, setSelectedEvents] = useState<string[]>(
+    webhook?.events || ["lead.created"]
   );
-
+  
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const mutation = useMutation({
-    mutationFn: async (data: Partial<InsertWebhook>) => {
-      if (webhook) {
-        return await apiRequest("PUT", `/api/webhooks/${webhook.id}`, data);
-      } else {
-        return await apiRequest("POST", "/api/webhooks", data);
-      }
+  const form = useForm<WebhookFormData>({
+    resolver: zodResolver(webhookSchema),
+    defaultValues: {
+      name: webhook?.name || "",
+      url: webhook?.url || "",
+      events: webhook?.events || ["lead.created"],
+      isActive: webhook?.isActive ?? true,
+      secret: webhook?.secret || "",
+    },
+  });
+
+  const createMutation = useMutation({
+    mutationFn: async (data: WebhookFormData) => {
+      const response = await apiRequest("POST", "/api/webhooks", data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/webhooks"] });
       toast({
         title: "Success",
-        description: webhook ? "Webhook updated successfully" : "Webhook created successfully",
+        description: "Webhook created successfully",
       });
       onClose();
     },
@@ -60,158 +73,163 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: `Failed to ${webhook ? "update" : "create"} webhook`,
+        description: "Failed to create webhook",
       });
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const updateMutation = useMutation({
+    mutationFn: async (data: WebhookFormData) => {
+      const response = await apiRequest("PUT", `/api/webhooks/${webhook!.id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/webhooks"] });
+      toast({
+        title: "Success",
+        description: "Webhook updated successfully",
+      });
+      onClose();
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update webhook",
+      });
+    },
+  });
+
+  const handleEventToggle = (eventId: string) => {
+    const newEvents = selectedEvents.includes(eventId)
+      ? selectedEvents.filter(e => e !== eventId)
+      : [...selectedEvents, eventId];
     
-    // Parse headers JSON
-    let headers = {};
-    if (headersText.trim()) {
-      try {
-        headers = JSON.parse(headersText);
-      } catch (error) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Invalid JSON format in headers",
-        });
-        return;
-      }
-    }
-
-    mutation.mutate({
-      ...formData,
-      headers,
-    });
+    setSelectedEvents(newEvents);
+    form.setValue("events", newEvents);
   };
 
-  const handleChange = (field: keyof InsertWebhook, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleEventToggle = (event: string, checked: boolean) => {
-    const currentEvents = formData.events || [];
-    if (checked) {
-      handleChange("events", [...currentEvents, event]);
+  const onSubmit = (data: WebhookFormData) => {
+    const formData = { ...data, events: selectedEvents };
+    
+    if (webhook) {
+      updateMutation.mutate(formData);
     } else {
-      handleChange("events", currentEvents.filter(e => e !== event));
+      createMutation.mutate(formData);
     }
   };
 
   return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] bg-slate-800 border-slate-700">
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-2xl">
         <DialogHeader>
-          <DialogTitle className="text-slate-100">
-            {webhook ? "Edit Webhook" : "Add New Webhook"}
+          <DialogTitle className="text-xl font-semibold">
+            {webhook ? "Edit Webhook" : "Add Webhook"}
           </DialogTitle>
+          <Button
+            variant="ghost"
+            onClick={onClose}
+            className="absolute right-4 top-4 p-1"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name" className="text-slate-300">Webhook Name *</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-                className="mt-1 bg-slate-800/50 border-slate-700"
-                required
-                data-testid="input-name"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="url" className="text-slate-300">Webhook URL *</Label>
-              <Input
-                id="url"
-                type="url"
-                value={formData.url}
-                onChange={(e) => handleChange("url", e.target.value)}
-                className="mt-1 bg-slate-800/50 border-slate-700"
-                placeholder="https://your-app.com/webhooks"
-                required
-                data-testid="input-url"
-              />
-            </div>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {/* Name */}
+          <div className="space-y-2">
+            <Label htmlFor="name">Webhook Name</Label>
+            <Input
+              id="name"
+              {...form.register("name")}
+              className="bg-slate-800 border-slate-600 text-slate-100"
+              placeholder="e.g., Lead Notifications"
+            />
+            {form.formState.errors.name && (
+              <p className="text-red-400 text-sm">{form.formState.errors.name.message}</p>
+            )}
           </div>
 
-          <div>
-            <Label className="text-slate-300">Events to Subscribe</Label>
-            <div className="mt-2 space-y-2">
+          {/* URL */}
+          <div className="space-y-2">
+            <Label htmlFor="url">Webhook URL</Label>
+            <Input
+              id="url"
+              {...form.register("url")}
+              className="bg-slate-800 border-slate-600 text-slate-100"
+              placeholder="https://your-app.com/webhooks/crm"
+            />
+            {form.formState.errors.url && (
+              <p className="text-red-400 text-sm">{form.formState.errors.url.message}</p>
+            )}
+          </div>
+
+          {/* Events */}
+          <div className="space-y-3">
+            <Label>Events to Subscribe</Label>
+            <div className="grid grid-cols-2 gap-3">
               {availableEvents.map((event) => (
-                <div key={event} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={event}
-                    checked={formData.events?.includes(event) || false}
-                    onCheckedChange={(checked) => handleEventToggle(event, checked as boolean)}
-                    data-testid={`checkbox-event-${event}`}
+                <div
+                  key={event.id}
+                  className="flex items-center space-x-2 p-3 bg-slate-800 rounded-lg"
+                >
+                  <input
+                    type="checkbox"
+                    id={event.id}
+                    checked={selectedEvents.includes(event.id)}
+                    onChange={() => handleEventToggle(event.id)}
+                    className="rounded border-slate-600"
                   />
-                  <Label htmlFor={event} className="text-slate-300 text-sm">
-                    {event}
+                  <Label htmlFor={event.id} className="text-sm">
+                    {event.label}
                   </Label>
                 </div>
               ))}
             </div>
+            {selectedEvents.length === 0 && (
+              <p className="text-red-400 text-sm">Select at least one event</p>
+            )}
           </div>
 
-          <div>
-            <Label htmlFor="secret" className="text-slate-300">Secret (for HMAC verification)</Label>
+          {/* Secret */}
+          <div className="space-y-2">
+            <Label htmlFor="secret">Secret Key (Optional)</Label>
             <Input
               id="secret"
-              value={formData.secret || ""}
-              onChange={(e) => handleChange("secret", e.target.value)}
-              className="mt-1 bg-slate-800/50 border-slate-700"
-              placeholder="Optional: webhook signature secret"
-              data-testid="input-secret"
+              {...form.register("secret")}
+              className="bg-slate-800 border-slate-600 text-slate-100"
+              placeholder="Optional secret for webhook signature verification"
             />
+            <p className="text-xs text-slate-400">
+              Used for HMAC signature verification to ensure webhook authenticity
+            </p>
           </div>
 
-          <div>
-            <Label htmlFor="headers" className="text-slate-300">Custom Headers (JSON)</Label>
-            <Textarea
-              id="headers"
-              value={headersText}
-              onChange={(e) => setHeadersText(e.target.value)}
-              className="mt-1 bg-slate-800/50 border-slate-700"
-              rows={4}
-              placeholder='{"Authorization": "Bearer token", "Content-Type": "application/json"}'
-              data-testid="textarea-headers"
-            />
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <Checkbox
+          {/* Active Toggle */}
+          <div className="flex items-center space-x-3">
+            <Switch
               id="isActive"
-              checked={formData.isActive}
-              onCheckedChange={(checked) => handleChange("isActive", checked)}
-              data-testid="checkbox-active"
+              checked={form.watch("isActive")}
+              onCheckedChange={(checked) => form.setValue("isActive", checked)}
             />
-            <Label htmlFor="isActive" className="text-slate-300">
-              Active Webhook
-            </Label>
+            <Label htmlFor="isActive">Active</Label>
           </div>
 
-          <div className="flex items-center justify-end space-x-3 pt-4">
+          {/* Actions */}
+          <div className="flex justify-end space-x-3 pt-4">
             <Button
               type="button"
               variant="outline"
               onClick={onClose}
-              data-testid="button-cancel"
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={mutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending}
               className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-              data-testid="button-save"
             >
-              {mutation.isPending ? "Saving..." : (webhook ? "Update Webhook" : "Create Webhook")}
+              {createMutation.isPending || updateMutation.isPending ? "Saving..." : webhook ? "Update" : "Create"}
             </Button>
           </div>
         </form>
