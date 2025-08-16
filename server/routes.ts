@@ -11,7 +11,6 @@ import { triggerWebhooks } from './webhooks';
 import { setupMcpServer } from './ai-agent-integration';
 import { ObjectStorageService, ObjectNotFoundError } from './objectStorage';
 import { ObjectPermission } from './objectAcl';
-import { getCurrentUser } from './auth-simple';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -612,7 +611,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Endpoint for serving private objects with ACL check
   app.get('/objects/:objectPath(*)', requireAuth, async (req, res) => {
-    const userId = req.session?.user?.id?.toString();
+    if (!req.session.userId) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    const userId = req.session.userId.toString();
     const objectStorageService = new ObjectStorageService();
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
@@ -638,12 +640,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/user/storage', async (req, res) => {
     try {
       // Get current user from session
-      const currentUser = await getCurrentUser(req);
-      if (!currentUser) {
+      if (!req.session.userId) {
         return res.status(401).json({ error: 'User not authenticated' });
       }
 
-      const user = await storage.getUser(currentUser.id);
+      const user = await storage.getUser(req.session.userId);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -666,11 +667,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Get current user from session
-    const currentUser = await getCurrentUser(req);
-    if (!currentUser) {
+    if (!req.session.userId) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
-    const userId = currentUser.id;
+    const userId = req.session.userId;
 
     try {
       // Get current user storage info

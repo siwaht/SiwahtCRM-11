@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import Uppy from "@uppy/core";
-import { DashboardModal } from "@uppy/react";
+import { Dashboard } from "@uppy/react";
 import "@uppy/core/dist/style.min.css";
 import "@uppy/dashboard/dist/style.min.css";
 import AwsS3 from "@uppy/aws-s3";
@@ -25,19 +25,19 @@ interface ObjectUploaderProps {
 }
 
 /**
- * A file upload component that renders as a button and provides a modal interface for
+ * A file upload component that renders as a button and provides an inline interface for
  * file management.
  * 
  * Features:
- * - Renders as a customizable button that opens a file upload modal
- * - Provides a modal interface for:
+ * - Renders as a customizable button that shows an inline upload interface
+ * - Provides an inline interface for:
  *   - File selection
  *   - File preview
  *   - Upload progress tracking
  *   - Upload status display
  * 
  * The component uses Uppy under the hood to handle all file upload functionality.
- * All file management features are automatically handled by the Uppy dashboard modal.
+ * All file management features are automatically handled by the Uppy dashboard.
  * 
  * @param props - Component props
  * @param props.maxNumberOfFiles - Maximum number of files allowed to be uploaded
@@ -64,7 +64,7 @@ export function ObjectUploader({
 }: ObjectUploaderProps) {
   const storageAvailable = storageLimit - storageUsed;
   const storageUsedPercent = Math.round((storageUsed / storageLimit) * 100);
-  const [showModal, setShowModal] = useState(false);
+  const [showUploader, setShowUploader] = useState(false);
   const [uppy] = useState(() => {
     const uppyInstance = new Uppy({
       restrictions: {
@@ -120,7 +120,7 @@ export function ObjectUploader({
       </div>
 
       <Button 
-        onClick={() => setShowModal(true)} 
+        onClick={() => setShowUploader(!showUploader)} 
         className={buttonClassName}
         disabled={storageAvailable <= 1024} // Disable if less than 1KB available
       >
@@ -130,12 +130,20 @@ export function ObjectUploader({
         <p className="text-red-400 text-sm mt-2">Storage limit reached. Please contact support to upgrade.</p>
       )}
 
-      <DashboardModal
-        uppy={uppy}
-        open={showModal}
-        onRequestClose={() => setShowModal(false)}
-        proudlyDisplayPoweredByUppy={false}
-      />
+      {showUploader && (
+        <div className="mt-4 border border-slate-600 rounded-lg overflow-hidden">
+          <Dashboard
+            uppy={uppy}
+            proudlyDisplayPoweredByUppy={false}
+            height={350}
+            showProgressDetails={true}
+            hideUploadButton={false}
+            hideCancelButton={false}
+            hideRetryButton={false}
+            hidePauseResumeButton={false}
+          />
+        </div>
+      )}
     </div>
   );
 }
