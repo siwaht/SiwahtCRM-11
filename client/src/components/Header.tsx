@@ -489,7 +489,7 @@ export default function Header() {
             </Card>
 
             {/* Actions */}
-            <div className="flex justify-between items-center pt-6 border-t border-slate-700/50">
+            <div className="flex justify-end items-center pt-6 border-t border-slate-700/50">
               <Button 
                 variant="outline" 
                 onClick={() => setShowProfile(false)}
@@ -499,24 +499,6 @@ export default function Header() {
                 <X className="h-4 w-4 mr-2" />
                 Close
               </Button>
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline"
-                  className="border-slate-600 text-slate-300 hover:bg-slate-800 px-6 py-2.5"
-                  disabled
-                >
-                  <Edit3 className="h-4 w-4 mr-2" />
-                  Edit Profile
-                </Button>
-                <Button 
-                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-2.5 font-medium"
-                  disabled
-                  data-testid="button-edit-profile"
-                >
-                  <User className="h-4 w-4 mr-2" />
-                  Manage Account
-                </Button>
-              </div>
             </div>
           </div>
         </DialogContent>
