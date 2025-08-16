@@ -382,7 +382,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                 </Badge>
               </div>
               <div className="space-y-1">
-                <span className="text-slate-400 text-xs uppercase tracking-wider">Priority</span>
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Priority: </span>
                 <Badge className={`${getPriorityColor(lead.priority || 'medium')} border text-xs px-2 py-1 w-fit`}>
                   {lead.priority === 'high' ? 'Hot' : lead.priority || 'medium'}
                 </Badge>
