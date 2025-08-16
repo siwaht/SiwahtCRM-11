@@ -285,19 +285,15 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                   >
                     📞
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="p-1 h-auto text-green-500 hover:bg-green-500/10"
-                    onClick={() => {
-                      const phoneNumber = lead.phone?.replace(/[^\d+]/g, '') || '';
-                      const whatsappUrl = `https://wa.me/${phoneNumber.startsWith('+') ? phoneNumber.slice(1) : phoneNumber}`;
-                      window.open(whatsappUrl, '_blank');
-                    }}
-                    data-testid="button-whatsapp"
+                  <a
+                    href={`https://wa.me/${(lead.phone?.replace(/[^\d+]/g, '') || '').startsWith('+') ? (lead.phone?.replace(/[^\d+]/g, '') || '').slice(1) : (lead.phone?.replace(/[^\d+]/g, '') || '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center p-1 h-auto text-green-500 hover:bg-green-500/10 rounded transition-colors"
+                    data-testid="link-whatsapp"
                   >
                     💬
-                  </Button>
+                  </a>
                 </div>
               </div>
             )}
