@@ -199,7 +199,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
                   <SelectValue placeholder="Select agent" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {users.map((user: any) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.name}
@@ -219,7 +219,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No product</SelectItem>
+                  <SelectItem value="none">No product</SelectItem>
                   {products.map((product: any) => (
                     <SelectItem key={product.id} value={product.id.toString()}>
                       {product.name}

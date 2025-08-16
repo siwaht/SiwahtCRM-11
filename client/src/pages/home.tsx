@@ -17,6 +17,7 @@ export default function Home() {
 
   if (!user) return null;
 
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "dashboard":
@@ -43,7 +44,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100">
       <Header />
-      <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} userRole={user.role} />
+      <TabNavigation activeTab={activeTab} onTabChange={handleTabChange} userRole={(user as any).user?.role || user.role} />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {renderTabContent()}
       </main>

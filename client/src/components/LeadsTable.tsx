@@ -25,19 +25,19 @@ export default function LeadsTable() {
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [filters, setFilters] = useState({
     search: "",
-    status: "",
-    assignedTo: "",
+    status: "all",
+    assignedTo: "all",
     source: "",
   });
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const { data: leads = [], isLoading } = useQuery({
+  const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads", filters],
   });
 
-  const { data: users = [] } = useQuery({
+  const { data: users = [] } = useQuery<any[]>({
     queryKey: ["/api/users"],
   });
 
@@ -167,7 +167,7 @@ export default function LeadsTable() {
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="new">New</SelectItem>
                   <SelectItem value="contacted">Contacted</SelectItem>
                   <SelectItem value="qualified">Qualified</SelectItem>
@@ -185,7 +185,7 @@ export default function LeadsTable() {
                   <SelectValue placeholder="All Agents" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Agents</SelectItem>
+                  <SelectItem value="all">All Agents</SelectItem>
                   {users.map((user: any) => (
                     <SelectItem key={user.id} value={user.id.toString()}>
                       {user.name}

@@ -25,6 +25,8 @@ const tabs = [
 
 export default function TabNavigation({ activeTab, onTabChange, userRole }: TabNavigationProps) {
   const availableTabs = tabs.filter(tab => tab.roles.includes(userRole));
+  
+
 
   return (
     <nav className="bg-slate-800/30 border-b border-slate-700/50">
