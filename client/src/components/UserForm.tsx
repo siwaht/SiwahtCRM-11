@@ -158,8 +158,8 @@ export default function UserForm({ user, onClose }: UserFormProps) {
           <div className="flex items-center space-x-2">
             <Checkbox
               id="isActive"
-              checked={formData.isActive}
-              onCheckedChange={(checked) => handleChange("isActive", checked)}
+              checked={formData.isActive || false}
+              onCheckedChange={(checked) => handleChange("isActive", checked === true)}
               data-testid="checkbox-active"
             />
             <Label htmlFor="isActive" className="text-slate-300">

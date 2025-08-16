@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import WebhookForm from "./WebhookForm";
+import UserForm from "./UserForm";
 import { 
   Users, 
   Webhook, 
@@ -26,6 +27,8 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("users");
   const [showWebhookForm, setShowWebhookForm] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookType | null>(null);
+  const [showUserForm, setShowUserForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const queryClient = useQueryClient();
@@ -89,6 +92,26 @@ export default function AdminPanel() {
         variant: "destructive",
         title: "Error",
         description: "Failed to send test webhook",
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/users/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete user",
       });
     },
   });
@@ -244,8 +267,12 @@ export default function AdminPanel() {
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-white">User Management</h3>
               <Button
-                onClick={() => alert('Add user functionality coming soon')}
+                onClick={() => {
+                  setEditingUser(null);
+                  setShowUserForm(true);
+                }}
                 className="bg-indigo-600 hover:bg-indigo-700"
+                data-testid="button-add-user"
               >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add User
@@ -268,11 +295,25 @@ export default function AdminPanel() {
                     <div className="flex space-x-2">
                       <Button
                         size="sm"
-                        onClick={() => alert('Edit user functionality coming soon')}
+                        onClick={() => {
+                          setEditingUser(user);
+                          setShowUserForm(true);
+                        }}
+                        data-testid={`button-edit-user-${user.id}`}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="destructive" onClick={() => alert('Delete user functionality coming soon')}>
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={() => {
+                          if (confirm(`Are you sure you want to delete user "${user.name}"? This action cannot be undone.`)) {
+                            deleteUserMutation.mutate(user.id);
+                          }
+                        }}
+                        disabled={deleteUserMutation.isPending}
+                        data-testid={`button-delete-user-${user.id}`}
+                      >
                         <Ban className="h-4 w-4" />
                       </Button>
                     </div>
@@ -553,6 +594,17 @@ export default function AdminPanel() {
           onClose={() => {
             setShowWebhookForm(false);
             setEditingWebhook(null);
+          }}
+        />
+      )}
+
+      {/* User Form Modal */}
+      {showUserForm && (
+        <UserForm
+          user={editingUser}
+          onClose={() => {
+            setShowUserForm(false);
+            setEditingUser(null);
           }}
         />
       )}
