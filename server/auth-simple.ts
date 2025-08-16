@@ -23,7 +23,6 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 export async function login(req: Request, res: Response) {
   try {
     const { email, password } = req.body;
-    console.log('Login attempt with email:', email);
 
     if (!email || !password) {
       return res.status(400).json({ message: 'Email and password are required' });
@@ -33,20 +32,13 @@ export async function login(req: Request, res: Response) {
     let user = await storage.getUserByEmail(email);
     if (!user) {
       user = await storage.getUserByUsername(email); // Allow login with username
-      console.log('User lookup by username:', user ? 'found' : 'not found');
-    } else {
-      console.log('User lookup by email:', user ? 'found' : 'not found');
     }
 
     if (!user || !user.isActive) {
-      console.log('User not found or inactive');
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    console.log('User found, verifying password...');
     const isValidPassword = await verifyPassword(password, user.password);
-    console.log('Password verification result:', isValidPassword);
-    
     if (!isValidPassword) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
@@ -54,9 +46,6 @@ export async function login(req: Request, res: Response) {
     // Store user in session
     req.session.userId = user.id;
     req.session.userRole = user.role;
-    console.log('Session created for user:', user.id);
-    console.log('Session ID:', req.sessionID);
-    console.log('Session data after save:', req.session);
 
     // Save session explicitly and wait for it
     req.session.save((err) => {
@@ -65,7 +54,6 @@ export async function login(req: Request, res: Response) {
         return res.status(500).json({ message: 'Session save failed' });
       }
       
-      console.log('Session saved successfully');
       // Return user without password
       const { password: _, ...userWithoutPassword } = user;
       res.json({ user: userWithoutPassword });
@@ -88,23 +76,16 @@ export async function logout(req: Request, res: Response) {
 }
 
 export async function getCurrentUser(req: Request, res: Response) {
-  console.log('getCurrentUser - Session ID:', req.sessionID);
-  console.log('getCurrentUser - Session data:', req.session);
-  console.log('getCurrentUser - Session userId:', req.session.userId);
-  
   if (!req.session.userId) {
-    console.log('No userId in session, returning 401');
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
   try {
     const user = await storage.getUser(req.session.userId);
     if (!user || !user.isActive) {
-      console.log('User not found or inactive');
       return res.status(401).json({ message: 'User not found' });
     }
 
-    console.log('User found, returning user data');
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword });
   } catch (error) {
