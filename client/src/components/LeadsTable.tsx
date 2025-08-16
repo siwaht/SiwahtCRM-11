@@ -14,7 +14,9 @@ import {
   Trash2,
   Mail,
   Phone,
-  AlertTriangle
+  AlertTriangle,
+  Download,
+  Upload
 } from "lucide-react";
 import LeadForm from "./LeadForm";
 import LeadDetails from "./LeadDetails";
@@ -32,6 +34,86 @@ export default function LeadsTable() {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const handleExportCSV = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filters.search) params.set('search', filters.search);
+      if (filters.status && filters.status !== 'all') params.set('status', filters.status);
+      if (filters.priority && filters.priority !== 'all') params.set('priority', filters.priority);
+      
+      const url = `/api/leads/export/csv${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(url, { credentials: 'include' });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export leads');
+      }
+      
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+      
+      toast({
+        title: "Success",
+        description: "Leads exported successfully",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to export leads",
+      });
+    }
+  };
+
+  const handleImportCSV = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('csvFile', file);
+    
+    fetch('/api/leads/import/csv', {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    })
+    .then(async (response) => {
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'Failed to import leads');
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      
+      toast({
+        title: "Import Complete",
+        description: `${result.results.successful} leads imported successfully. ${result.results.failed} failed.`,
+      });
+      
+      if (result.results.errors.length > 0) {
+        console.log('Import errors:', result.results.errors);
+      }
+    })
+    .catch((error) => {
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: error.message || "Failed to import leads",
+      });
+    })
+    .finally(() => {
+      // Reset the file input
+      event.target.value = '';
+    });
+  };
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads", filters],
@@ -138,17 +220,46 @@ export default function LeadsTable() {
           <h2 className="text-xl font-bold text-white">Lead Management</h2>
           <p className="text-slate-400 mt-1">{leads.length} of {leads.length} leads</p>
         </div>
-        <Button
-          onClick={() => {
-            setEditingLead(null);
-            setShowLeadForm(true);
-          }}
-          className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2"
-          data-testid="button-add-lead"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Lead
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Export CSV Button */}
+          <Button
+            onClick={handleExportCSV}
+            variant="outline"
+            className="border-slate-600 text-slate-300 hover:bg-slate-700/50 px-4 py-2"
+            data-testid="button-export-csv"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export CSV
+          </Button>
+          
+          {/* Import CSV Button */}
+          <label className="cursor-pointer">
+            <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-600 text-slate-300 hover:bg-slate-700/50 px-4 py-2 h-10">
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </div>
+            <input
+              type="file"
+              accept=".csv"
+              onChange={handleImportCSV}
+              className="hidden"
+              data-testid="input-csv-file"
+            />
+          </label>
+          
+          {/* Add Lead Button */}
+          <Button
+            onClick={() => {
+              setEditingLead(null);
+              setShowLeadForm(true);
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2"
+            data-testid="button-add-lead"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Lead
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
