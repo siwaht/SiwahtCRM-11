@@ -200,7 +200,7 @@ export default function LeadsTable() {
       <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
         {/* Table Header */}
         <div className="bg-slate-700/30 px-4 py-3 border-b border-slate-600/50">
-          <div className="grid grid-cols-12 gap-2 text-xs font-medium text-slate-400 uppercase tracking-wider">
+          <div className="grid grid-cols-12 gap-1 text-xs font-medium text-slate-400 uppercase tracking-wider">
             <div className="col-span-1"></div>
             <div className="col-span-2">Lead</div>
             <div className="col-span-2">Contact</div>
@@ -218,7 +218,7 @@ export default function LeadsTable() {
         <div className="divide-y divide-slate-700/50">
           {leads.map((lead: Lead) => (
             <div key={lead.id} className="px-4 py-4 hover:bg-slate-700/20 transition-colors" data-testid={`row-lead-${lead.id}`}>
-              <div className="grid grid-cols-12 gap-2 items-center">
+              <div className="grid grid-cols-12 gap-1 items-center">
                 {/* Checkbox */}
                 <div className="col-span-1">
                   <input type="checkbox" className="w-4 h-4 text-indigo-600 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500" />
