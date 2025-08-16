@@ -55,10 +55,21 @@ export async function login(req: Request, res: Response) {
     req.session.userId = user.id;
     req.session.userRole = user.role;
     console.log('Session created for user:', user.id);
+    console.log('Session ID:', req.sessionID);
+    console.log('Session data after save:', req.session);
 
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
-    res.json({ user: userWithoutPassword });
+    // Save session explicitly and wait for it
+    req.session.save((err) => {
+      if (err) {
+        console.error('Session save error:', err);
+        return res.status(500).json({ message: 'Session save failed' });
+      }
+      
+      console.log('Session saved successfully');
+      // Return user without password
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -77,16 +88,23 @@ export async function logout(req: Request, res: Response) {
 }
 
 export async function getCurrentUser(req: Request, res: Response) {
+  console.log('getCurrentUser - Session ID:', req.sessionID);
+  console.log('getCurrentUser - Session data:', req.session);
+  console.log('getCurrentUser - Session userId:', req.session.userId);
+  
   if (!req.session.userId) {
+    console.log('No userId in session, returning 401');
     return res.status(401).json({ message: 'Not authenticated' });
   }
 
   try {
     const user = await storage.getUser(req.session.userId);
     if (!user || !user.isActive) {
+      console.log('User not found or inactive');
       return res.status(401).json({ message: 'User not found' });
     }
 
+    console.log('User found, returning user data');
     const { password: _, ...userWithoutPassword } = user;
     res.json({ user: userWithoutPassword });
   } catch (error) {
