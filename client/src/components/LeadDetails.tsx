@@ -414,12 +414,12 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
           <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-1">
-                <span className="text-slate-400 text-xs uppercase tracking-wider">Assigned Agent</span>
-                <span className="text-slate-300 text-sm">{getAssigneeName(lead.assignedTo)}</span>
+                <span className="text-slate-400 text-xs uppercase tracking-wider block">Assigned Agent</span>
+                <span className="text-slate-300 text-sm block">{getAssigneeName(lead.assignedTo)}</span>
               </div>
               <div className="space-y-1">
-                <span className="text-slate-400 text-xs uppercase tracking-wider">Assigned Engineer</span>
-                <span className="text-slate-300 text-sm">{getEngineerName(lead.assignedEngineer)}</span>
+                <span className="text-slate-400 text-xs uppercase tracking-wider block">Assigned Engineer</span>
+                <span className="text-slate-300 text-sm block">{getEngineerName(lead.assignedEngineer)}</span>
               </div>
             </div>
           </div>
