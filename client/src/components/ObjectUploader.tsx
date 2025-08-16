@@ -65,6 +65,12 @@ export function ObjectUploader({
   const storageAvailable = storageLimit - storageUsed;
   const storageUsedPercent = Math.round((storageUsed / storageLimit) * 100);
   const [showUploader, setShowUploader] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
+  
+  const addDebug = (message: string) => {
+    console.log('ObjectUploader Debug:', message);
+    setDebugInfo(prev => [...prev.slice(-4), `${new Date().toLocaleTimeString()}: ${message}`]);
+  };
   const [uppy] = useState(() => {
     const uppyInstance = new Uppy({
       restrictions: {
@@ -76,7 +82,18 @@ export function ObjectUploader({
     
     uppyInstance.use(AwsS3, {
       shouldUseMultipart: false,
-      getUploadParameters: onGetUploadParameters,
+      getUploadParameters: async () => {
+        try {
+          addDebug('Attempting to get upload parameters...');
+          const result = await onGetUploadParameters();
+          addDebug(`Got upload parameters: method=${result.method}, url length=${result.url?.length || 0}`);
+          return result;
+        } catch (error) {
+          addDebug(`Error getting upload parameters: ${error}`);
+          console.error('Upload parameters error:', error);
+          throw error;
+        }
+      },
     });
     
     uppyInstance.on("complete", (result) => {
@@ -89,6 +106,15 @@ export function ObjectUploader({
     
     uppyInstance.on("upload-error", (file, error) => {
       console.error('Upload error:', error);
+      addDebug(`Upload error: ${error}`);
+    });
+    
+    uppyInstance.on('file-added', (file) => {
+      addDebug(`File added: ${file.name} (${file.size} bytes)`);
+    });
+    
+    uppyInstance.on('upload', () => {
+      addDebug('Upload started');
     });
     
     return uppyInstance;
@@ -130,7 +156,10 @@ export function ObjectUploader({
       </div>
 
       <Button 
-        onClick={() => setShowUploader(!showUploader)} 
+        onClick={() => {
+          addDebug(`Button clicked, toggling uploader: ${!showUploader}`);
+          setShowUploader(!showUploader);
+        }} 
         className={buttonClassName}
         disabled={storageAvailable <= 1024} // Disable if less than 1KB available
       >
@@ -143,7 +172,10 @@ export function ObjectUploader({
       <DashboardModal
         uppy={uppy}
         open={showUploader}
-        onRequestClose={() => setShowUploader(false)}
+        onRequestClose={() => {
+          addDebug('Modal close requested');
+          setShowUploader(false);
+        }}
         proudlyDisplayPoweredByUppy={false}
         showProgressDetails={true}
         hideUploadButton={false}
@@ -151,6 +183,18 @@ export function ObjectUploader({
         hideRetryButton={false}
         hidePauseResumeButton={false}
       />
+      
+      {/* Debug Info - remove after testing */}
+      {debugInfo.length > 0 && process.env.NODE_ENV === 'development' && (
+        <div className="mt-4 p-3 bg-slate-900/80 border border-slate-600/50 rounded-lg text-xs">
+          <div className="text-slate-300 font-medium mb-2">Upload Debug Log:</div>
+          {debugInfo.map((info, index) => (
+            <div key={index} className="text-slate-400 font-mono">
+              {info}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
