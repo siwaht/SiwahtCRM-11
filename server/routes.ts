@@ -26,14 +26,16 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Session middleware
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    secret: process.env.SESSION_SECRET || 'your-secret-key-dev-12345',
     resave: false,
     saveUninitialized: false,
+    name: 'siwaht.sid', // Custom session name
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Always false for development since we're not using HTTPS
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/'
     }
   }));
 
