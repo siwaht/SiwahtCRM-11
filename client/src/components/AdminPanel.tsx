@@ -534,8 +534,11 @@ export default function AdminPanel() {
                           size="sm" 
                           onClick={() => testWebhookMutation.mutate(webhook.id)}
                           disabled={testWebhookMutation.isPending}
+                          className={`${testWebhookMutation.isPending ? 'animate-pulse' : ''}`}
+                          data-testid={`button-test-webhook-${webhook.id}`}
                         >
                           <TestTube className="h-4 w-4" />
+                          {testWebhookMutation.isPending ? 'Testing...' : 'Test'}
                         </Button>
                         <Button
                           size="sm"
@@ -543,8 +546,10 @@ export default function AdminPanel() {
                             setEditingWebhook(webhook);
                             setShowWebhookForm(true);
                           }}
+                          data-testid={`button-edit-webhook-${webhook.id}`}
                         >
                           <Edit className="h-4 w-4" />
+                          Edit
                         </Button>
                         <Button 
                           size="sm" 
@@ -555,8 +560,10 @@ export default function AdminPanel() {
                             }
                           }}
                           disabled={deleteWebhookMutation.isPending}
+                          data-testid={`button-delete-webhook-${webhook.id}`}
                         >
                           <Trash2 className="h-4 w-4" />
+                          {deleteWebhookMutation.isPending ? 'Deleting...' : 'Delete'}
                         </Button>
                       </div>
                     </div>
