@@ -697,160 +697,150 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
           </Card>
 
           {/* File Attachments */}
-          <Card className="bg-slate-800/30 border-slate-700/50">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Paperclip className="h-4 w-4 text-slate-400" />
-                <h4 className="text-white font-medium">File Attachments</h4>
-              </div>
-              
-              <div className="space-y-4">
-                {/* Existing Attachments */}
-                {attachmentsLoading ? (
-                  <div className="text-center py-4">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500 mx-auto"></div>
-                  </div>
-                ) : attachments.length > 0 ? (
-                  <div className="space-y-2">
-                    <h5 className="text-sm font-medium text-slate-300">Uploaded Files</h5>
-                    {attachments.map((attachment) => {
-                      const formatFileSize = (bytes: number) => {
-                        if (bytes === 0) return '0 Bytes';
-                        const k = 1024;
-                        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-                        const i = Math.floor(Math.log(bytes) / Math.log(k));
-                        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-                      };
-                      
-                      return (
-                        <div key={attachment.id} className="flex items-center justify-between p-3 bg-slate-800/30 border border-slate-700/50 rounded-lg">
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <FileText className="h-4 w-4 text-slate-400 flex-shrink-0" />
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-slate-200 truncate">
-                                {attachment.fileName}
-                              </p>
-                              <div className="flex items-center gap-3 text-xs text-slate-400">
-                                <span>{formatFileSize(attachment.fileSize || 0)}</span>
-                                <span>•</span>
-                                <span>{new Date(attachment.createdAt).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <a
-                              href={attachment.filePath}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 text-xs px-2 py-1 rounded border border-blue-400/30 hover:border-blue-300/30 transition-colors"
-                              data-testid={`link-view-attachment-${attachment.id}`}
-                            >
-                              View
-                            </a>
-                            <button
-                              onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
-                              disabled={deleteAttachmentMutation.isPending}
-                              className="text-red-400 hover:text-red-300 text-xs px-2 py-1 rounded border border-red-400/30 hover:border-red-300/30 transition-colors disabled:opacity-50"
-                              data-testid={`button-delete-attachment-${attachment.id}`}
-                            >
-                              {deleteAttachmentMutation.isPending ? 'Deleting...' : 'Delete'}
-                            </button>
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Paperclip className="h-4 w-4 text-slate-400" />
+              <h4 className="text-slate-400 text-sm font-medium">File Attachments</h4>
+            </div>
+            
+            {/* Attachment Display Area */}
+            <div className="bg-slate-800/50 border border-slate-700/30 rounded-lg p-4 min-h-[120px]">
+              {attachmentsLoading ? (
+                <div className="flex items-center justify-center h-16">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
+                </div>
+              ) : attachments.length > 0 ? (
+                <div className="space-y-2">
+                  {attachments.map((attachment) => {
+                    const formatFileSize = (bytes: number) => {
+                      if (bytes === 0) return '0 Bytes';
+                      const k = 1024;
+                      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                      const i = Math.floor(Math.log(bytes) / Math.log(k));
+                      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                    };
+                    
+                    return (
+                      <div key={attachment.id} className="flex items-center justify-between p-2 bg-slate-900/30 rounded border border-slate-600/30">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <FileText className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-xs text-slate-200 truncate block">{attachment.fileName}</span>
+                            <span className="text-xs text-slate-500">{formatFileSize(attachment.fileSize || 0)}</span>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center text-slate-400">
-                    <p className="text-sm">No attachments yet.</p>
-                  </div>
-                )}
-                
-                <div className="flex items-center gap-2">
-                  <Input 
-                    value={fileDescription}
-                    onChange={(e) => setFileDescription(e.target.value)}
-                    placeholder="Optional description for the files..."
-                    className="bg-slate-800/50 border-slate-700 text-slate-200"
-                    data-testid="input-file-description"
-                  />
-                  <ObjectUploader
-                    maxNumberOfFiles={5}
-                    maxFileSize={10485760} // 10MB
-                    storageUsed={storageInfo?.storageUsed || 0}
-                    storageLimit={storageInfo?.storageLimit || 524288000}
-                    onGetUploadParameters={async () => {
-                      try {
-                        const response = await apiRequest("POST", "/api/objects/upload");
-                        const data = await response.json();
-                        console.log('Upload response data:', data);
-                        return {
-                          method: "PUT" as const,
-                          url: data.uploadURL || data.url
-                        };
-                      } catch (error) {
-                        console.error('Error getting upload URL:', error);
-                        throw new Error('Failed to get upload URL');
-                      }
-                    }}
-                    onComplete={async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-                      // Handle successful upload
-                      for (const file of result.successful || []) {
-                        try {
-                          await apiRequest("PUT", "/api/lead-attachments", {
-                            fileURL: file.uploadURL,
-                            leadId: lead.id,
-                            fileName: file.name,
-                            fileSize: file.size
-                          });
-                        } catch (error) {
-                          console.error('Error setting file metadata:', error);
-                        }
-                      }
-                      
-                      // Create interaction if description provided or quick action selected
-                      if (fileDescription.trim() || selectedQuickAction) {
-                        const interactionText = fileDescription.trim() 
-                          ? (selectedQuickAction 
-                              ? `[${selectedQuickAction.toUpperCase()}] Uploaded file(s): ${fileDescription}` 
-                              : `Uploaded file(s): ${fileDescription}`)
-                          : `[${selectedQuickAction?.toUpperCase()}] Uploaded file(s)`;
-                        
-                        const interactionType = selectedQuickAction || "note";
-                        
-                        try {
-                          await apiRequest("POST", `/api/leads/${lead.id}/interactions`, {
-                            type: interactionType,
-                            text: interactionText
-                          });
-                          
-                          queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/interactions`] });
-                          queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
-                          setSelectedQuickAction(null);
-                          setFileDescription("");
-                        } catch (error) {
-                          console.error('Error creating interaction:', error);
-                        }
-                      }
-                      
-                      // Invalidate storage query to refresh usage
-                      queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
-                      
-                      toast({
-                        title: "Success",
-                        description: `${result.successful?.length || 0} file(s) uploaded successfully`,
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          <a
+                            href={attachment.filePath}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-400 hover:text-blue-300 text-xs px-1 py-0.5 rounded"
+                            data-testid={`link-view-attachment-${attachment.id}`}
+                          >
+                            View
+                          </a>
+                          <button
+                            onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
+                            disabled={deleteAttachmentMutation.isPending}
+                            className="text-red-400 hover:text-red-300 text-xs px-1 py-0.5 rounded disabled:opacity-50"
+                            data-testid={`button-delete-attachment-${attachment.id}`}
+                          >
+                            {deleteAttachmentMutation.isPending ? '...' : '×'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-16 text-slate-500 text-sm">
+                  No attachments yet.
+                </div>
+              )}
+            </div>
+            
+            {/* Upload Controls */}
+            <div className="flex items-center gap-2">
+              <Input 
+                value={fileDescription}
+                onChange={(e) => setFileDescription(e.target.value)}
+                placeholder="Optional description for the files..."
+                className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm h-9"
+                data-testid="input-file-description"
+              />
+              <ObjectUploader
+                maxNumberOfFiles={5}
+                maxFileSize={10485760} // 10MB
+                storageUsed={storageInfo?.storageUsed || 0}
+                storageLimit={storageInfo?.storageLimit || 524288000}
+                onGetUploadParameters={async () => {
+                  try {
+                    const response = await apiRequest("POST", "/api/objects/upload");
+                    const data = await response.json();
+                    return {
+                      method: "PUT" as const,
+                      url: data.uploadURL || data.url
+                    };
+                  } catch (error) {
+                    console.error('Error getting upload URL:', error);
+                    throw new Error('Failed to get upload URL');
+                  }
+                }}
+                onComplete={async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                  // Handle successful upload
+                  for (const file of result.successful || []) {
+                    try {
+                      await apiRequest("PUT", "/api/lead-attachments", {
+                        fileURL: file.uploadURL,
+                        leadId: lead.id,
+                        fileName: file.name,
+                        fileSize: file.size
+                      });
+                    } catch (error) {
+                      console.error('Error setting file metadata:', error);
+                    }
+                  }
+                  
+                  // Create interaction if description provided or quick action selected
+                  if (fileDescription.trim() || selectedQuickAction) {
+                    const interactionText = fileDescription.trim() 
+                      ? (selectedQuickAction 
+                          ? `[${selectedQuickAction.toUpperCase()}] Uploaded file(s): ${fileDescription}` 
+                          : `Uploaded file(s): ${fileDescription}`)
+                      : `[${selectedQuickAction?.toUpperCase()}] Uploaded file(s)`;
+                    
+                    const interactionType = selectedQuickAction || "note";
+                    
+                    try {
+                      await apiRequest("POST", `/api/leads/${lead.id}/interactions`, {
+                        type: interactionType,
+                        text: interactionText
                       });
                       
-                    }}
-                    buttonClassName="bg-green-600 hover:bg-green-700 px-6"
-                  >
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload
-                  </ObjectUploader>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/interactions`] });
+                      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+                      setSelectedQuickAction(null);
+                      setFileDescription("");
+                    } catch (error) {
+                      console.error('Error creating interaction:', error);
+                    }
+                  }
+                  
+                  // Invalidate storage query to refresh usage
+                  queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+                  
+                  toast({
+                    title: "Success",
+                    description: `${result.successful?.length || 0} file(s) uploaded successfully`,
+                  });
+                }}
+                buttonClassName="bg-green-600 hover:bg-green-700 px-4 h-9 text-sm"
+              >
+                <Upload className="h-4 w-4 mr-1" />
+                Upload
+              </ObjectUploader>
+            </div>
+          </div>
         </div>
 
         {/* Add Interaction Modal */}
