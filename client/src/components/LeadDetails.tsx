@@ -199,8 +199,18 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     if (!userId) return "Unknown";
     
     // Check if it's the current user first
-    if (currentUser && currentUser.id === userId) {
-      return `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim() || 'You';
+    if (currentUser && Number(currentUser.id) === Number(userId)) {
+      // Handle different user data structures
+      if (currentUser.user) {
+        // If currentUser has a nested user object
+        const user = currentUser.user;
+        const name = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim();
+        return name || 'You';
+      } else {
+        // Direct currentUser object
+        const name = currentUser.name || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim();
+        return name || 'You';
+      }
     }
     
     // Try to find in users list
@@ -209,8 +219,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
       return user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
     }
     
-    // Fallback
-    return "Team Member";
+    // If we can't find the user but we have a userId, show a more helpful message
+    return userId ? `User #${userId}` : "Team Member";
   };
 
   const handleAddInteraction = () => {
