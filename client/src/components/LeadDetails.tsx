@@ -198,28 +198,46 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   const getInteractionUserName = (userId: number | null) => {
     if (!userId) return "Unknown";
     
+    // Debug logging to see what data we have
+    console.log('Getting interaction user name for userId:', userId);
+    console.log('Current user data:', currentUser);
+    
     // Check if it's the current user first
-    if (currentUser && Number(currentUser.id) === Number(userId)) {
+    const currentUserId = currentUser?.user?.id || currentUser?.id;
+    console.log('Current user ID:', currentUserId, 'Interaction user ID:', userId);
+    
+    if (currentUser && Number(currentUserId) === Number(userId)) {
       // Handle different user data structures
       if (currentUser.user) {
-        // If currentUser has a nested user object
+        // If currentUser has a nested user object (API response: {user: {...}})
         const user = currentUser.user;
-        const name = user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim();
+        const firstName = (user.firstName || '').trim();
+        const lastName = (user.lastName || '').trim();
+        const name = user.name || `${firstName} ${lastName}`.trim();
+        console.log('Found current user (nested):', name);
         return name || 'You';
       } else {
         // Direct currentUser object
-        const name = currentUser.name || `${currentUser.firstName || ''} ${currentUser.lastName || ''}`.trim();
+        const firstName = (currentUser.firstName || '').trim();
+        const lastName = (currentUser.lastName || '').trim();
+        const name = currentUser.name || `${firstName} ${lastName}`.trim();
+        console.log('Found current user (direct):', name);
         return name || 'You';
       }
     }
     
     // Try to find in users list
-    const user = users.find((u: any) => u.id === userId);
+    const user = users.find((u: any) => Number(u.id) === Number(userId));
     if (user) {
-      return user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown User';
+      const firstName = (user.firstName || '').trim();
+      const lastName = (user.lastName || '').trim();
+      const name = user.name || `${firstName} ${lastName}`.trim();
+      console.log('Found user in list:', name);
+      return name || 'Unknown User';
     }
     
     // If we can't find the user but we have a userId, show a more helpful message
+    console.log('User not found, showing fallback for userId:', userId);
     return userId ? `User #${userId}` : "Team Member";
   };
 
