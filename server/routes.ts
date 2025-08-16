@@ -321,16 +321,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const leadId = parseInt(req.params.id);
       console.log('Creating interaction for lead:', leadId);
       console.log('Request body:', req.body);
-      console.log('User ID:', req.user?.id);
+      console.log('User ID from session:', req.session.userId);
       
-      if (!req.user?.id) {
+      if (!req.session.userId) {
         return res.status(401).json({ message: 'User not authenticated' });
       }
       
       const interactionData = insertInteractionSchema.parse({
         ...req.body,
         leadId,
-        userId: req.user.id
+        userId: req.session.userId
       });
       
       console.log('Parsed interaction data:', interactionData);
