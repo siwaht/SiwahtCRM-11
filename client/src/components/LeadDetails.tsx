@@ -439,7 +439,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
 
           {/* Engineering Notes */}
           <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
-            <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-3">Engineering Notes</h4>
+            <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-3">Engineering Notes: </h4>
             <p className="text-sm text-slate-200 leading-relaxed">
               {lead.engineeringNotes || "Working on AI Avatar design - client approved initial concepts. Video ad production starts next week. Need to coordinate with creative team for brand alignment."}
             </p>
