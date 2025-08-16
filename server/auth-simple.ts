@@ -94,11 +94,23 @@ export async function getCurrentUser(req: Request, res: Response) {
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session.userId) {
     return res.status(401).json({ message: 'Authentication required' });
   }
-  next();
+
+  // Load full user for request
+  try {
+    const user = await storage.getUser(req.session.userId);
+    if (!user || !user.isActive) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Auth check error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
 }
 
 export function requireRole(...roles: string[]) {
