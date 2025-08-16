@@ -268,13 +268,30 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                 <Phone className="h-4 w-4 text-slate-400" />
                 <span className="text-slate-300">Phone:</span>
                 <span className="text-green-400">{lead.phone}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="p-1 h-auto text-green-400 hover:bg-green-500/10"
-                >
-                  📞
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="p-1 h-auto text-green-400 hover:bg-green-500/10"
+                    onClick={() => window.open(`tel:${lead.phone}`, '_self')}
+                    data-testid="button-call-phone"
+                  >
+                    📞
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="p-1 h-auto text-green-500 hover:bg-green-500/10"
+                    onClick={() => {
+                      const phoneNumber = lead.phone?.replace(/[^\d+]/g, '') || '';
+                      const whatsappUrl = `https://wa.me/${phoneNumber.startsWith('+') ? phoneNumber.slice(1) : phoneNumber}`;
+                      window.open(whatsappUrl, '_blank');
+                    }}
+                    data-testid="button-whatsapp"
+                  >
+                    💬
+                  </Button>
+                </div>
               </div>
             )}
           </div>
