@@ -642,12 +642,12 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     storageUsed={storageInfo?.storageUsed || 0}
                     storageLimit={storageInfo?.storageLimit || 524288000}
                     onGetUploadParameters={async () => {
-                      const response = await apiRequest("POST", "/api/objects/upload");
+                      const response = await apiRequest("POST", "/api/objects/upload") as { method: "PUT"; url: string };
                       return response;
                     }}
                     onComplete={async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
                       // Handle successful upload
-                      for (const file of result.successful) {
+                      for (const file of result.successful || []) {
                         try {
                           await apiRequest("PUT", "/api/lead-attachments", {
                             fileURL: file.uploadURL,
@@ -665,7 +665,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                       
                       toast({
                         title: "Success",
-                        description: `${result.successful.length} file(s) uploaded successfully`,
+                        description: `${result.successful?.length || 0} file(s) uploaded successfully`,
                       });
                     }}
                     buttonClassName="bg-green-600 hover:bg-green-700 px-6"
