@@ -232,21 +232,13 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-4xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader className="relative">
-          <DialogTitle className="text-xl font-semibold text-left pr-8">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-left">
             {lead.company || lead.name}
           </DialogTitle>
           <DialogDescription className="sr-only">
             View and manage lead interactions, notes, and contact information
           </DialogDescription>
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="absolute right-0 top-0 p-1 hover:bg-slate-700/50"
-            data-testid="button-close-lead-details"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <div className="space-y-6">
