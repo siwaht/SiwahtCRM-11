@@ -14,6 +14,7 @@ import { ObjectPermission } from './objectAcl';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import Papa from 'papaparse';
 
 // Setup multer for file uploads
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -619,6 +620,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Database deletion error:', error);
       res.status(500).json({ message: 'Failed to clear database' });
+    }
+  });
+
+  // Lead CSV Import/Export (Accessible to all authenticated users)
+  app.get('/api/leads/export/csv', requireAuth, async (req, res) => {
+    try {
+      const { status, assignedTo, source, priority } = req.query;
+      const filters = {
+        ...(status && { status: status as string }),
+        ...(assignedTo && { assignedTo: parseInt(assignedTo as string) }),
+        ...(source && { source: source as string }),
+        ...(priority && { priority: priority as string }),
+      };
+      
+      const leads = await storage.getAllLeads(filters);
+      
+      // Convert leads to CSV format
+      const csvData = leads.map(lead => ({
+        name: lead.name,
+        email: lead.email || '',
+        phone: lead.phone || '',
+        company: lead.company || '',
+        status: lead.status,
+        source: lead.source || '',
+        value: lead.value || '',
+        assignedTo: lead.assignedTo || '',
+        assignedEngineer: lead.assignedEngineer || '',
+        assignedProduct: lead.assignedProduct || '',
+        notes: lead.notes || '',
+        priority: lead.priority,
+        score: lead.score,
+        engineeringProgress: lead.engineeringProgress,
+        engineeringNotes: lead.engineeringNotes || '',
+        lastContactedAt: lead.lastContactedAt ? lead.lastContactedAt.toISOString() : '',
+        createdAt: lead.createdAt.toISOString()
+      }));
+      
+      const csv = Papa.unparse(csvData);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="leads-export-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('CSV export error:', error);
+      res.status(500).json({ message: 'Failed to export leads' });
+    }
+  });
+
+  app.post('/api/leads/import/csv', requireAuth, upload.single('csvFile'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No CSV file uploaded' });
+      }
+
+      const fileContent = fs.readFileSync(req.file.path, 'utf8');
+      
+      // Parse CSV
+      const parseResult = Papa.parse(fileContent, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim()
+      });
+
+      if (parseResult.errors.length > 0) {
+        // Clean up uploaded file
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ 
+          message: 'CSV parsing failed', 
+          errors: parseResult.errors 
+        });
+      }
+
+      const importResults = {
+        successful: 0,
+        failed: 0,
+        errors: [] as string[]
+      };
+
+      // Process each row
+      for (let i = 0; i < parseResult.data.length; i++) {
+        const row = parseResult.data[i] as any;
+        
+        try {
+          // Validate required fields
+          if (!row.name || !row.name.trim()) {
+            importResults.failed++;
+            importResults.errors.push(`Row ${i + 2}: Name is required`);
+            continue;
+          }
+
+          const leadData = {
+            name: row.name.trim(),
+            email: row.email?.trim() || null,
+            phone: row.phone?.trim() || null,
+            company: row.company?.trim() || null,
+            status: (row.status?.trim() || 'new') as any,
+            source: row.source?.trim() || null,
+            value: row.value ? parseFloat(row.value) : null,
+            assignedTo: row.assignedTo ? parseInt(row.assignedTo) : null,
+            assignedEngineer: row.assignedEngineer ? parseInt(row.assignedEngineer) : null,
+            assignedProduct: row.assignedProduct ? parseInt(row.assignedProduct) : null,
+            notes: row.notes?.trim() || null,
+            priority: (row.priority?.trim() || 'medium') as any,
+            score: row.score ? parseInt(row.score) : 0,
+            engineeringProgress: row.engineeringProgress ? parseInt(row.engineeringProgress) : 0,
+            engineeringNotes: row.engineeringNotes?.trim() || null,
+            lastContactedAt: row.lastContactedAt ? new Date(row.lastContactedAt) : null
+          };
+
+          // Create the lead
+          const lead = await storage.createLead(leadData);
+          
+          // Trigger webhooks
+          await triggerWebhooks('lead.created', lead);
+          
+          importResults.successful++;
+        } catch (error) {
+          importResults.failed++;
+          importResults.errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      res.json({
+        message: 'CSV import completed',
+        results: importResults
+      });
+    } catch (error) {
+      console.error('CSV import error:', error);
+      // Clean up uploaded file on error
+      if (req.file) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded file:', cleanupError);
+        }
+      }
+      res.status(500).json({ message: 'Failed to import CSV' });
     }
   });
 
