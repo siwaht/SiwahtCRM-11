@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { apiRequest } from "@/lib/queryClient";
@@ -19,7 +20,9 @@ import {
   Zap,
   Download,
   Upload,
-  FileText
+  FileText,
+  X,
+  Eye
 } from "lucide-react";
 import ProductForm from "./ProductForm";
 import type { Product } from "@shared/schema";
@@ -48,6 +51,7 @@ const profitColors = {
 export default function ProductCatalog() {
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [viewingProduct, setViewingProduct] = useState<Product | null>(null);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -374,7 +378,8 @@ export default function ProductCatalog() {
           return (
             <Card
               key={product.id}
-              className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50 hover:border-indigo-500/30 transition-all group"
+              className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50 hover:border-indigo-500/30 transition-all group cursor-pointer"
+              onClick={() => setViewingProduct(product)}
               data-testid={`card-product-${product.id}`}
             >
               <CardContent className="p-6">
@@ -447,12 +452,15 @@ export default function ProductCatalog() {
 
                 {/* Admin Actions */}
                 {isAdmin && (
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-700/30">
+                  <div className="flex items-center justify-between pt-4 border-t border-slate-700/30" onClick={(e) => e.stopPropagation()}>
                     <div className="flex space-x-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleEdit(product)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(product);
+                        }}
                         className="p-2 hover:bg-slate-700/50 rounded-lg"
                         data-testid={`button-edit-${product.id}`}
                       >
@@ -461,7 +469,10 @@ export default function ProductCatalog() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDuplicate(product)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDuplicate(product);
+                        }}
                         className="p-2 hover:bg-slate-700/50 rounded-lg"
                         data-testid={`button-copy-${product.id}`}
                       >
@@ -472,7 +483,10 @@ export default function ProductCatalog() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleReorder(product.id, 'up')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReorder(product.id, 'up');
+                        }}
                         disabled={reorderMutation.isPending}
                         className="p-1 h-6 w-6 text-xs text-slate-400 hover:text-slate-300"
                         data-testid={`button-reorder-up-${product.id}`}
@@ -483,7 +497,10 @@ export default function ProductCatalog() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleReorder(product.id, 'down')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleReorder(product.id, 'down');
+                        }}
                         disabled={reorderMutation.isPending}
                         className="p-1 h-6 w-6 text-xs text-slate-400 hover:text-slate-300"
                         data-testid={`button-reorder-down-${product.id}`}
@@ -534,6 +551,134 @@ export default function ProductCatalog() {
           </CardContent>
         </Card>
       )}
+
+      {/* Product Details Modal */}
+      <Dialog open={!!viewingProduct} onOpenChange={() => setViewingProduct(null)}>
+        {viewingProduct && (
+          <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-4xl max-h-[95vh] overflow-hidden flex flex-col">
+            <DialogHeader className="flex-shrink-0">
+              <DialogTitle className="flex items-center gap-3">
+                <Eye className="h-6 w-6 text-indigo-400" />
+                Product Details: {viewingProduct.name}
+              </DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Complete information about this AI service product
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-8 overflow-y-auto flex-1 pr-3 py-2 scrollbar-thin scrollbar-track-slate-800 scrollbar-thumb-slate-600 hover:scrollbar-thumb-slate-500">
+              {/* Product Header */}
+              <Card className="bg-gradient-to-r from-slate-800/40 to-slate-700/40 border-slate-600/50 shadow-lg">
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        {(() => {
+                          const Icon = (productIcons as any)[viewingProduct.name] || productIcons.default;
+                          return <Icon className="h-8 w-8 text-white" />;
+                        })()}
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold text-white mb-2">{viewingProduct.name}</h2>
+                        <Badge className={`${priorityColors[viewingProduct.priority as keyof typeof priorityColors] || 'text-slate-400'} border px-3 py-1 text-sm font-medium`}>
+                          {viewingProduct.priority} Priority
+                        </Badge>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-emerald-400 mb-2">
+                        {viewingProduct.price}
+                      </div>
+                      <Badge className={`${profitColors[viewingProduct.profitLevel as keyof typeof profitColors] || 'bg-slate-500/20 text-slate-400'} text-sm px-3 py-1 font-medium`}>
+                        {viewingProduct.profitLevel}
+                      </Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Product Description */}
+              <Card className="bg-slate-800/30 border-slate-700/50">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-blue-400" />
+                    Product Description
+                  </h3>
+                  <p className="text-slate-300 leading-relaxed">
+                    {viewingProduct.pitch || "No description available"}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Sales Information */}
+              {(viewingProduct.talkingPoints || viewingProduct.agentNotes) && (
+                <Card className="bg-slate-800/30 border-slate-700/50">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                      <Bot className="h-5 w-5 text-green-400" />
+                      Sales Information
+                    </h3>
+                    <div className="space-y-6">
+                      {viewingProduct.talkingPoints && (
+                        <div>
+                          <h4 className="text-md font-medium text-indigo-400 mb-3">Pitch Points:</h4>
+                          <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                            {viewingProduct.talkingPoints}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {viewingProduct.agentNotes && (
+                        <div>
+                          <h4 className="text-md font-medium text-purple-400 mb-3">Agent Notes:</h4>
+                          <p className="text-slate-300 leading-relaxed whitespace-pre-line">
+                            {viewingProduct.agentNotes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Tags */}
+              {viewingProduct.tags && viewingProduct.tags.length > 0 && (
+                <Card className="bg-slate-800/30 border-slate-700/50">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                      <Package className="h-5 w-5 text-orange-400" />
+                      Tags
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {viewingProduct.tags.map((tag, index) => (
+                        <Badge
+                          key={index}
+                          className="bg-slate-700/50 text-slate-300 border border-slate-600/50 px-3 py-1.5 text-sm"
+                        >
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Actions */}
+              <div className="flex justify-end items-center pt-6 border-t border-slate-700/50">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setViewingProduct(null)}
+                  className="border-slate-600 text-slate-300 hover:bg-slate-800 px-6 py-2.5"
+                  data-testid="button-close-product-details"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Close
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Product Form Modal */}
       {showProductForm && (
