@@ -101,6 +101,26 @@ export default function ProductCatalog() {
     },
   });
 
+  const reorderMutation = useMutation({
+    mutationFn: async (productIds: number[]) => {
+      await apiRequest("POST", "/api/products/reorder", { productIds });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Success",
+        description: "Products reordered successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to reorder products",
+      });
+    },
+  });
+
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
     setShowProductForm(true);
@@ -114,6 +134,29 @@ export default function ProductCatalog() {
     if (confirm("Are you sure you want to delete this product?")) {
       deleteMutation.mutate(id);
     }
+  };
+
+  const handleReorder = (productId: number, direction: 'up' | 'down') => {
+    const sortedProducts = [...products].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
+    const currentIndex = sortedProducts.findIndex(p => p.id === productId);
+    
+    if (currentIndex === -1) return;
+    
+    let newIndex;
+    if (direction === 'up' && currentIndex > 0) {
+      newIndex = currentIndex - 1;
+    } else if (direction === 'down' && currentIndex < sortedProducts.length - 1) {
+      newIndex = currentIndex + 1;
+    } else {
+      return; // Can't move further
+    }
+    
+    // Swap the products
+    [sortedProducts[currentIndex], sortedProducts[newIndex]] = [sortedProducts[newIndex], sortedProducts[currentIndex]];
+    
+    // Create new order array
+    const newOrder = sortedProducts.map(p => p.id);
+    reorderMutation.mutate(newOrder);
   };
 
   const getProductIcon = (name: string) => {
@@ -325,7 +368,7 @@ export default function ProductCatalog() {
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products.map((product: Product) => {
+        {[...products].sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0)).map((product: Product) => {
           const Icon = getProductIcon(product.name);
           
           return (
@@ -425,15 +468,30 @@ export default function ProductCatalog() {
                         <Copy className="h-4 w-4 text-slate-400" />
                       </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs text-slate-400 hover:text-slate-300"
-                      data-testid={`button-reorder-${product.id}`}
-                    >
-                      <ArrowUpDown className="h-3 w-3 mr-1" />
-                      Reorder
-                    </Button>
+                    <div className="flex items-center space-x-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleReorder(product.id, 'up')}
+                        disabled={reorderMutation.isPending}
+                        className="p-1 h-6 w-6 text-xs text-slate-400 hover:text-slate-300"
+                        data-testid={`button-reorder-up-${product.id}`}
+                        title="Move up"
+                      >
+                        ↑
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleReorder(product.id, 'down')}
+                        disabled={reorderMutation.isPending}
+                        className="p-1 h-6 w-6 text-xs text-slate-400 hover:text-slate-300"
+                        data-testid={`button-reorder-down-${product.id}`}
+                        title="Move down"
+                      >
+                        ↓
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
