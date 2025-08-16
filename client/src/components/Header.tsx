@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Bell, Brain, LogOut, User } from "lucide-react";
+import { Bell, LogOut, User } from "lucide-react";
+import siwatLogoPath from "@assets/siwath_logo_withoutbackground_1755357359703.png";
 
 export default function Header() {
   const { user, logout } = useAuth();
@@ -11,8 +12,12 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-              <Brain className="h-6 w-6 text-white" />
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+              <img 
+                src={siwatLogoPath} 
+                alt="Siwaht Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <h1 className="text-xl font-bold">Siwaht CRM</h1>
