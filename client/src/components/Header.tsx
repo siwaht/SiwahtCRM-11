@@ -1,15 +1,20 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Bell, LogOut, User, X, CheckCheck, AlertTriangle, Info, Calendar } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Bell, LogOut, User, X, CheckCheck, AlertTriangle, Info, Calendar, Edit3, Mail, Phone, MapPin, Building, UserCircle } from "lucide-react";
 import siwatLogoPath from "@assets/siwath_logo_withoutbackground_1755357359703.png";
 
 export default function Header() {
   const { user, logout } = useAuth();
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const [notifications, setNotifications] = useState([
     {
       id: 1,
@@ -73,10 +78,16 @@ export default function Header() {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleProfileClick = () => {
-    toast({
-      title: "Profile Menu",
-      description: "User profile settings and preferences coming soon!",
-    });
+    setShowProfile(true);
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role?.toLowerCase()) {
+      case 'admin': return 'bg-red-500/20 text-red-400 border-red-400/30';
+      case 'agent': return 'bg-blue-500/20 text-blue-400 border-blue-400/30';
+      case 'engineer': return 'bg-green-500/20 text-green-400 border-green-400/30';
+      default: return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
+    }
   };
 
   return (
@@ -229,6 +240,149 @@ export default function Header() {
                 </div>
               ))
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Profile Modal */}
+      <Dialog open={showProfile} onOpenChange={setShowProfile}>
+        <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <UserCircle className="h-6 w-6 text-indigo-400" />
+              User Profile
+            </DialogTitle>
+            <DialogDescription className="text-slate-400">
+              View and manage your account information
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Profile Header */}
+            <Card className="bg-slate-800/30 border-slate-700/50">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <User className="h-8 w-8 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h2 className="text-xl font-semibold text-white">
+                        {user?.name || 'Unknown User'}
+                      </h2>
+                      <Badge className={`${getRoleColor(user?.role || '')} border text-sm`}>
+                        {user?.role || 'User'}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-400">
+                      Member since {new Date().getFullYear()}
+                    </p>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {/* Account Information */}
+            <Card className="bg-slate-800/30 border-slate-700/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Info className="h-5 w-5 text-blue-400" />
+                  Account Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Full Name</Label>
+                    <Input 
+                      value={user?.name || ''} 
+                      readOnly 
+                      className="bg-slate-800/50 border-slate-700 text-slate-200"
+                      data-testid="input-profile-name"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Username</Label>
+                    <Input 
+                      value={user?.username || ''} 
+                      readOnly 
+                      className="bg-slate-800/50 border-slate-700 text-slate-200"
+                      data-testid="input-profile-username"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Email</Label>
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-slate-400" />
+                      <span className="text-slate-200">
+                        {user?.email || 'Not provided'}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-slate-300 mb-2 block">Role</Label>
+                    <div className="flex items-center gap-2">
+                      <Building className="h-4 w-4 text-slate-400" />
+                      <Badge className={`${getRoleColor(user?.role || '')} border`}>
+                        {user?.role || 'User'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Account Stats */}
+            <Card className="bg-slate-800/30 border-slate-700/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-white">
+                  <Calendar className="h-5 w-5 text-green-400" />
+                  Account Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-slate-700/30 rounded-lg">
+                    <div className="text-2xl font-bold text-indigo-400 mb-1">
+                      {user?.id || '1'}
+                    </div>
+                    <div className="text-sm text-slate-400">User ID</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-700/30 rounded-lg">
+                    <div className="text-2xl font-bold text-green-400 mb-1">
+                      Active
+                    </div>
+                    <div className="text-sm text-slate-400">Status</div>
+                  </div>
+                  <div className="text-center p-4 bg-slate-700/30 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-400 mb-1">
+                      {new Date().toLocaleDateString()}
+                    </div>
+                    <div className="text-sm text-slate-400">Last Login</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Actions */}
+            <div className="flex justify-between items-center pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowProfile(false)}
+                className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                data-testid="button-close-profile"
+              >
+                Close
+              </Button>
+              <Button 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                disabled
+                data-testid="button-edit-profile"
+              >
+                <Edit3 className="h-4 w-4 mr-2" />
+                Edit Profile (Coming Soon)
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
