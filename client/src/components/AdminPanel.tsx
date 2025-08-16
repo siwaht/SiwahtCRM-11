@@ -154,8 +154,8 @@ export default function AdminPanel() {
   });
 
   const updateUserStatusMutation = useMutation({
-    mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await apiRequest("PUT", `/api/users/${id}`, { status });
+    mutationFn: async ({ id, isActive }: { id: number; isActive: boolean }) => {
+      const response = await apiRequest("PUT", `/api/users/${id}`, { isActive });
       return response.json();
     },
     onSuccess: () => {
@@ -405,13 +405,10 @@ export default function AdminPanel() {
                       }
                     };
 
-                    const getStatusBadgeColor = (status: string) => {
-                      switch (status) {
-                        case 'active': return 'bg-emerald-500/20 text-emerald-400 border-emerald-400/30';
-                        case 'inactive': return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
-                        case 'pending': return 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30';
-                        default: return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
-                      }
+                    const getStatusBadgeColor = (isActive: boolean) => {
+                      return isActive 
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-400/30'
+                        : 'bg-slate-500/20 text-slate-400 border-slate-400/30';
                     };
 
                     return (
@@ -427,8 +424,8 @@ export default function AdminPanel() {
                               <Badge className={`text-xs px-2 py-1 border ${getRoleBadgeColor(user.role)} capitalize`}>
                                 {user.role}
                               </Badge>
-                              <Badge className={`text-xs px-2 py-1 border ${getStatusBadgeColor(user.status)} capitalize`}>
-                                {user.status}
+                              <Badge className={`text-xs px-2 py-1 border ${getStatusBadgeColor(user.isActive)} capitalize`}>
+                                {user.isActive ? 'active' : 'inactive'}
                               </Badge>
                             </div>
                           </div>
@@ -454,11 +451,11 @@ export default function AdminPanel() {
                         <div className="flex items-center justify-between py-4 border-t border-slate-700">
                           <span className="text-white font-medium">Enable/Disable Agent</span>
                           <Switch
-                            checked={user.status === 'active'}
+                            checked={user.isActive}
                             onCheckedChange={(checked) => {
                               updateUserStatusMutation.mutate({
                                 id: user.id,
-                                status: checked ? 'active' : 'inactive'
+                                isActive: checked
                               });
                             }}
                             disabled={updateUserStatusMutation.isPending}

@@ -70,11 +70,33 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
         description: "Interaction added successfully",
       });
     },
-    onError: () => {
+    onError: async (error) => {
+      console.error('Add interaction error:', error);
+      let errorMessage = "Failed to add interaction";
+      
+      try {
+        // Try to get more specific error message from response
+        if (error instanceof Error && error.message.includes('fetch')) {
+          const response = await fetch(`/api/leads/${lead.id}/interactions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(newInteraction)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          }
+        }
+      } catch (e) {
+        console.error('Error getting specific error message:', e);
+      }
+      
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to add interaction",
+        description: errorMessage,
       });
     },
   });

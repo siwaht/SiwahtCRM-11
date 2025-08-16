@@ -319,11 +319,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/leads/:id/interactions', requireAuth, async (req, res) => {
     try {
       const leadId = parseInt(req.params.id);
+      console.log('Creating interaction for lead:', leadId);
+      console.log('Request body:', req.body);
+      console.log('User ID:', req.user?.id);
+      
+      if (!req.user?.id) {
+        return res.status(401).json({ message: 'User not authenticated' });
+      }
+      
       const interactionData = insertInteractionSchema.parse({
         ...req.body,
         leadId,
-        userId: req.user!.id
+        userId: req.user.id
       });
+      
+      console.log('Parsed interaction data:', interactionData);
       
       const interaction = await storage.createInteraction(interactionData);
       
@@ -333,7 +343,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(interaction);
     } catch (error) {
       console.error('Create interaction error:', error);
-      res.status(400).json({ message: 'Invalid interaction data' });
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      res.status(400).json({ 
+        message: 'Invalid interaction data',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
