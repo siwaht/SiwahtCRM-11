@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +14,11 @@ import {
   Ban,
   Plus,
   Trash2,
-  TestTube
+  TestTube,
+  Database,
+  Download,
+  Upload,
+  AlertTriangle
 } from "lucide-react";
 import type { User, Webhook as WebhookType } from "@shared/schema";
 
@@ -22,6 +26,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("users");
   const [showWebhookForm, setShowWebhookForm] = useState(false);
   const [editingWebhook, setEditingWebhook] = useState<WebhookType | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -79,6 +84,109 @@ export default function AdminPanel() {
     },
   });
 
+  // Database management mutations
+  const exportDatabaseMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("GET", "/api/database/export");
+      const data = await response.json();
+      
+      // Create and download file
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `siwaht-crm-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      return data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Database exported successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to export database",
+      });
+    },
+  });
+
+  const deleteDatabaseMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", "/api/database");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(); // Invalidate all queries since data is cleared
+      toast({
+        title: "Success",
+        description: "Database cleared successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to clear database",
+      });
+    },
+  });
+
+  // Handle file import
+  const handleDatabaseImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".json")) {
+      toast({
+        variant: "destructive",
+        title: "Invalid File",
+        description: "Please select a JSON file",
+      });
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("database", file);
+
+      const response = await fetch("/api/database/import", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Import failed");
+      }
+
+      queryClient.invalidateQueries(); // Invalidate all queries since data changed
+      toast({
+        title: "Success",
+        description: "Database imported successfully",
+      });
+    } catch (error) {
+      console.error("Import error:", error);
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: error instanceof Error ? error.message : "Failed to import database",
+      });
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -111,6 +219,13 @@ export default function AdminPanel() {
           >
             <Bot className="h-4 w-4" />
             <span>AI Integration</span>
+          </Button>
+          <Button
+            onClick={() => setActiveTab("database")}
+            className={`flex items-center space-x-2 ${activeTab === "database" ? "bg-indigo-600" : "bg-slate-700"}`}
+          >
+            <Database className="h-4 w-4" />
+            <span>Database</span>
           </Button>
         </div>
 
@@ -286,6 +401,128 @@ export default function AdminPanel() {
                 <p className="text-slate-400 text-sm mb-2">AI agents can connect to this MCP server using:</p>
                 <div className="bg-slate-900 p-3 rounded font-mono text-sm">
                   <p className="text-slate-300">ws://localhost:5003</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "database" && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-white">Database Management</h3>
+            
+            {/* Export Section */}
+            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h4 className="font-medium text-white mb-2">Export Database</h4>
+                  <p className="text-sm text-slate-400 mb-4">
+                    Download a complete backup of your CRM data including users, leads, products, interactions, and configurations.
+                  </p>
+                  <Button
+                    onClick={() => exportDatabaseMutation.mutate()}
+                    disabled={exportDatabaseMutation.isPending}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                    data-testid="button-export-database"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {exportDatabaseMutation.isPending ? "Exporting..." : "Export Database"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Import Section */}
+            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h4 className="font-medium text-white mb-2">Import Database</h4>
+                  <div className="flex items-start space-x-3 mb-4">
+                    <AlertTriangle className="h-5 w-5 text-amber-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-amber-400 font-medium">Warning: This will replace all existing data</p>
+                      <p className="text-sm text-slate-400">
+                        Import will completely replace your current database with the uploaded data. Make sure to export a backup first.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-blue-600 hover:bg-blue-700"
+                    data-testid="button-import-database"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Import Database
+                  </Button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".json"
+                    onChange={handleDatabaseImport}
+                    style={{ display: "none" }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Delete Section */}
+            <div className="p-4 bg-red-900/20 rounded-lg border border-red-500/30">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h4 className="font-medium text-white mb-2">Clear Database</h4>
+                  <div className="flex items-start space-x-3 mb-4">
+                    <AlertTriangle className="h-5 w-5 text-red-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm text-red-400 font-medium">Danger: This cannot be undone</p>
+                      <p className="text-sm text-slate-400">
+                        This will permanently delete ALL data from your CRM including users, leads, products, and configurations. Make sure to export a backup first.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      if (confirm("Are you absolutely sure? This will delete ALL data from your CRM and cannot be undone. Type 'DELETE' to confirm.")) {
+                        const confirmText = prompt("Please type 'DELETE' to confirm:");
+                        if (confirmText === "DELETE") {
+                          deleteDatabaseMutation.mutate();
+                        } else {
+                          toast({
+                            title: "Cancelled",
+                            description: "Database deletion was cancelled",
+                          });
+                        }
+                      }
+                    }}
+                    disabled={deleteDatabaseMutation.isPending}
+                    variant="destructive"
+                    data-testid="button-delete-database"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deleteDatabaseMutation.isPending ? "Deleting..." : "Clear All Data"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Statistics */}
+            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
+              <h4 className="font-medium text-white mb-3">Database Statistics</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <p className="text-slate-400">Users:</p>
+                  <p className="text-white font-medium">{users.length}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Webhooks:</p>
+                  <p className="text-white font-medium">{webhooks.length}</p>
+                </div>
+                <div>
+                  <p className="text-slate-400">Status:</p>
+                  <Badge className="bg-emerald-500/20 text-emerald-400">Online</Badge>
+                </div>
+                <div>
+                  <p className="text-slate-400">Version:</p>
+                  <p className="text-white font-medium">1.0.0</p>
                 </div>
               </div>
             </div>

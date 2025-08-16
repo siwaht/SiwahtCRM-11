@@ -81,6 +81,11 @@ export interface IStorage {
 
   // Analytics
   getAnalytics(): Promise<AnalyticsData>;
+
+  // Database Management
+  exportDatabase(): Promise<DatabaseExport>;
+  importDatabase(data: DatabaseExport): Promise<boolean>;
+  deleteDatabase(): Promise<boolean>;
 }
 
 export interface LeadFilters {
@@ -98,6 +103,20 @@ export interface AnalyticsData {
   activeProjects: number;
   leadsByStatus: { status: string; count: number }[];
   revenueByMonth: { month: string; revenue: number }[];
+}
+
+export interface DatabaseExport {
+  version: string;
+  exportedAt: string;
+  data: {
+    users: User[];
+    products: Product[];
+    leads: Lead[];
+    interactions: Interaction[];
+    webhooks: Webhook[];
+    leadAttachments: LeadAttachment[];
+    mcpServers: McpServer[];
+  };
 }
 
 export class DatabaseStorage implements IStorage {
@@ -382,6 +401,114 @@ export class DatabaseStorage implements IStorage {
       leadsByStatus,
       revenueByMonth
     };
+  }
+
+  // Database Management
+  async exportDatabase(): Promise<DatabaseExport> {
+    const [usersData, productsData, leadsData, interactionsData, webhooksData, attachmentsData, mcpServersData] = await Promise.all([
+      db.select().from(users),
+      db.select().from(products),
+      db.select().from(leads),
+      db.select().from(interactions),
+      db.select().from(webhooks),
+      db.select().from(leadAttachments),
+      db.select().from(mcpServers)
+    ]);
+
+    return {
+      version: "1.0.0",
+      exportedAt: new Date().toISOString(),
+      data: {
+        users: usersData,
+        products: productsData,
+        leads: leadsData,
+        interactions: interactionsData,
+        webhooks: webhooksData,
+        leadAttachments: attachmentsData,
+        mcpServers: mcpServersData
+      }
+    };
+  }
+
+  async importDatabase(data: DatabaseExport): Promise<boolean> {
+    try {
+      // Clear all existing data first
+      await this.deleteDatabase();
+
+      // Import data in the correct order (respecting foreign key constraints)
+      // First import independent tables
+      if (data.data.users?.length > 0) {
+        for (const user of data.data.users) {
+          const { id, createdAt, updatedAt, ...insertData } = user;
+          await db.insert(users).values(insertData);
+        }
+      }
+
+      if (data.data.products?.length > 0) {
+        for (const product of data.data.products) {
+          const { id, createdAt, ...insertData } = product;
+          await db.insert(products).values(insertData);
+        }
+      }
+
+      if (data.data.webhooks?.length > 0) {
+        for (const webhook of data.data.webhooks) {
+          const { id, createdAt, lastTriggered, ...insertData } = webhook;
+          await db.insert(webhooks).values(insertData);
+        }
+      }
+
+      if (data.data.mcpServers?.length > 0) {
+        for (const server of data.data.mcpServers) {
+          const { id, createdAt, ...insertData } = server;
+          await db.insert(mcpServers).values(insertData);
+        }
+      }
+
+      // Then import dependent tables
+      if (data.data.leads?.length > 0) {
+        for (const lead of data.data.leads) {
+          const { id, createdAt, ...insertData } = lead;
+          await db.insert(leads).values(insertData);
+        }
+      }
+
+      if (data.data.interactions?.length > 0) {
+        for (const interaction of data.data.interactions) {
+          const { id, createdAt, ...insertData } = interaction;
+          await db.insert(interactions).values(insertData);
+        }
+      }
+
+      if (data.data.leadAttachments?.length > 0) {
+        for (const attachment of data.data.leadAttachments) {
+          const { id, createdAt, ...insertData } = attachment;
+          await db.insert(leadAttachments).values(insertData);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Database import failed:', error);
+      return false;
+    }
+  }
+
+  async deleteDatabase(): Promise<boolean> {
+    try {
+      // Delete in reverse order of dependencies
+      await db.delete(leadAttachments);
+      await db.delete(interactions);
+      await db.delete(leads);
+      await db.delete(webhooks);
+      await db.delete(mcpServers);
+      await db.delete(products);
+      await db.delete(users);
+      return true;
+    } catch (error) {
+      console.error('Database deletion failed:', error);
+      return false;
+    }
   }
 }
 

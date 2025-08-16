@@ -6,6 +6,7 @@ import { pool } from './db';
 import { storage } from "./storage";
 import { login, logout, getCurrentUser, requireAuth, requireRole, hashPassword } from './auth-simple';
 import { insertUserSchema, insertLeadSchema, insertProductSchema, insertInteractionSchema, insertWebhookSchema } from '@shared/schema';
+import type { DatabaseExport } from './storage';
 import { triggerWebhooks } from './webhooks';
 import { setupMcpServer } from './ai-agent-integration';
 import multer from 'multer';
@@ -398,6 +399,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Get analytics error:', error);
       res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Database Management (Admin only)
+  app.get('/api/database/export', requireRole('admin'), async (req, res) => {
+    try {
+      const exportData = await storage.exportDatabase();
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="siwaht-crm-export-${new Date().toISOString().split('T')[0]}.json"`);
+      res.json(exportData);
+    } catch (error) {
+      console.error('Database export error:', error);
+      res.status(500).json({ message: 'Failed to export database' });
+    }
+  });
+
+  app.post('/api/database/import', requireRole('admin'), upload.single('database'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+
+      const fileContent = fs.readFileSync(req.file.path, 'utf8');
+      const importData: DatabaseExport = JSON.parse(fileContent);
+
+      // Validate the import data structure
+      if (!importData.version || !importData.data) {
+        return res.status(400).json({ message: 'Invalid database export format' });
+      }
+
+      const success = await storage.importDatabase(importData);
+      
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      if (success) {
+        res.json({ message: 'Database imported successfully' });
+      } else {
+        res.status(500).json({ message: 'Failed to import database' });
+      }
+    } catch (error) {
+      console.error('Database import error:', error);
+      // Clean up uploaded file on error
+      if (req.file) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded file:', cleanupError);
+        }
+      }
+      res.status(500).json({ message: 'Failed to import database' });
+    }
+  });
+
+  app.delete('/api/database', requireRole('admin'), async (req, res) => {
+    try {
+      const success = await storage.deleteDatabase();
+      if (success) {
+        res.json({ message: 'Database cleared successfully' });
+      } else {
+        res.status(500).json({ message: 'Failed to clear database' });
+      }
+    } catch (error) {
+      console.error('Database deletion error:', error);
+      res.status(500).json({ message: 'Failed to clear database' });
     }
   });
 
