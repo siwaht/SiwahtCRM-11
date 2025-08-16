@@ -34,6 +34,8 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
   });
   
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
+  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [fileDescription, setFileDescription] = useState("");
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -84,15 +86,52 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const submitData = {
-      ...formData,
-      productIds: selectedProducts,
-      followUpDate: formData.followUpDate ? new Date(formData.followUpDate) : null,
-      tags: formData.tags || []
-    };
-    mutation.mutate(submitData);
+    
+    try {
+      // First create the lead
+      const submitData = {
+        ...formData,
+        productIds: selectedProducts,
+        followUpDate: formData.followUpDate ? new Date(formData.followUpDate) : null,
+        tags: formData.tags || []
+      };
+      
+      const result = await (lead ? 
+        apiRequest("PUT", `/api/leads/${lead.id}`, submitData) :
+        apiRequest("POST", "/api/leads", submitData)
+      );
+      
+      // Then upload files if any are selected
+      if (selectedFiles && selectedFiles.length > 0) {
+        const leadId = result.id || lead?.id;
+        if (leadId) {
+          for (const file of Array.from(selectedFiles)) {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('leadId', leadId.toString());
+            formData.append('description', fileDescription || file.name);
+            
+            await apiRequest('POST', '/api/attachments', formData);
+          }
+        }
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      toast({
+        title: "Success",
+        description: lead ? "Lead updated successfully" : "Lead created successfully",
+      });
+      onClose();
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to ${lead ? "update" : "create"} lead`,
+      });
+    }
   };
 
   const handleChange = (field: keyof InsertLead, value: any) => {
@@ -332,17 +371,59 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
             </div>
             <div className="flex space-x-3">
               <Input
+                value={fileDescription}
+                onChange={(e) => setFileDescription(e.target.value)}
                 placeholder="Optional description for the files..."
                 className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 flex-1"
               />
-              <Button
-                type="button"
-                variant="outline"
-                className="bg-green-600 hover:bg-green-700 text-white border-green-600 px-6"
-              >
-                Choose Files
-              </Button>
+              <div className="relative">
+                <input
+                  type="file"
+                  id="file-upload"
+                  multiple
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  onChange={(e) => setSelectedFiles(e.target.files)}
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.xls,.xlsx,.csv"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="bg-green-600 hover:bg-green-700 text-white border-green-600 px-6"
+                  data-testid="button-choose-files"
+                >
+                  Choose Files
+                </Button>
+              </div>
             </div>
+            {selectedFiles && selectedFiles.length > 0 && (
+              <div className="mt-3 p-3 bg-slate-600/30 rounded border border-slate-600">
+                <p className="text-slate-300 text-sm font-medium mb-2">
+                  {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected:
+                </p>
+                <ul className="space-y-1">
+                  {Array.from(selectedFiles).map((file, index) => (
+                    <li key={index} className="text-slate-400 text-sm flex items-center justify-between">
+                      <span>{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const dt = new DataTransfer();
+                          Array.from(selectedFiles).forEach((f, i) => {
+                            if (i !== index) dt.items.add(f);
+                          });
+                          setSelectedFiles(dt.files.length > 0 ? dt.files : null);
+                        }}
+                        className="text-slate-400 hover:text-red-400 h-6 px-2"
+                      >
+                        <X className="w-3 h-3" />
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Submit Button */}
