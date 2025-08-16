@@ -329,7 +329,7 @@ export default function LeadsTable() {
                 
                 {/* Actions */}
                 <div className="col-span-1">
-                  <div className="flex items-center space-x-1">
+                  <div className="flex items-center justify-end space-x-1">
                     <Button
                       variant="ghost"
                       size="sm"
