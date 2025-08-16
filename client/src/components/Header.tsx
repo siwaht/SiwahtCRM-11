@@ -119,21 +119,23 @@ export default function Header() {
             {/* User Profile */}
             <div className="flex items-center space-x-3 bg-slate-800/30 px-3 py-2 rounded-xl">
               <div 
-                className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center cursor-pointer hover:scale-105 transition-transform"
+                className="flex items-center space-x-3 cursor-pointer hover:bg-slate-700/30 rounded-lg px-2 py-1 transition-colors flex-1"
                 onClick={handleProfileClick}
-                data-testid="button-user-avatar"
+                data-testid="button-user-profile"
               >
-                <User className="h-4 w-4 text-white" />
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-sm font-medium" data-testid="text-username">{user?.name}</p>
-                <p className="text-xs text-slate-400 capitalize" data-testid="text-userrole">{user?.role}</p>
+                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <User className="h-4 w-4 text-white" />
+                </div>
+                <div className="hidden sm:block">
+                  <p className="text-sm font-medium text-white" data-testid="text-username">{user?.name}</p>
+                  <p className="text-xs text-slate-400 capitalize" data-testid="text-userrole">{user?.role}</p>
+                </div>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={logout}
-                className="p-1"
+                className="p-1 hover:bg-slate-700/50"
                 data-testid="button-logout"
               >
                 <LogOut className="h-4 w-4 text-slate-400 hover:text-slate-300" />
