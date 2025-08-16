@@ -11,6 +11,7 @@ import { triggerWebhooks } from './webhooks';
 import { setupMcpServer } from './ai-agent-integration';
 import { ObjectStorageService, ObjectNotFoundError } from './objectStorage';
 import { ObjectPermission } from './objectAcl';
+import { getCurrentUser } from './auth-simple';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -634,14 +635,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user storage usage
-  app.get('/api/user/storage', requireAuth, async (req, res) => {
+  app.get('/api/user/storage', async (req, res) => {
     try {
-      const userId = req.session?.user?.id;
-      if (!userId) {
+      // Get current user from session
+      const currentUser = await getCurrentUser(req);
+      if (!currentUser) {
         return res.status(401).json({ error: 'User not authenticated' });
       }
 
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(currentUser.id);
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -658,15 +660,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Endpoint for updating file metadata after upload
-  app.put('/api/lead-attachments', requireAuth, async (req, res) => {
+  app.put('/api/lead-attachments', async (req, res) => {
     if (!req.body.fileURL || !req.body.leadId || !req.body.fileSize) {
       return res.status(400).json({ error: 'fileURL, leadId, and fileSize are required' });
     }
 
-    const userId = req.session?.user?.id;
-    if (!userId) {
+    // Get current user from session
+    const currentUser = await getCurrentUser(req);
+    if (!currentUser) {
       return res.status(401).json({ error: 'User not authenticated' });
     }
+    const userId = currentUser.id;
 
     try {
       // Get current user storage info

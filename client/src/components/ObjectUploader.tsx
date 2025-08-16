@@ -65,22 +65,26 @@ export function ObjectUploader({
   const storageAvailable = storageLimit - storageUsed;
   const storageUsedPercent = Math.round((storageUsed / storageLimit) * 100);
   const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
+  const [uppy] = useState(() => {
+    const uppyInstance = new Uppy({
       restrictions: {
         maxNumberOfFiles,
-        maxFileSize: Math.min(maxFileSize, storageAvailable), // Don't allow uploads larger than available storage
+        maxFileSize: Math.min(maxFileSize, Math.max(storageAvailable, 1024)), // Ensure at least 1KB minimum
       },
       autoProceed: false,
-    })
-      .use(AwsS3, {
-        shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
-      })
-      .on("complete", (result) => {
-        onComplete?.(result);
-      })
-  );
+    });
+    
+    uppyInstance.use(AwsS3, {
+      shouldUseMultipart: false,
+      getUploadParameters: onGetUploadParameters,
+    });
+    
+    uppyInstance.on("complete", (result) => {
+      onComplete?.(result);
+    });
+    
+    return uppyInstance;
+  });
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -118,11 +122,11 @@ export function ObjectUploader({
       <Button 
         onClick={() => setShowModal(true)} 
         className={buttonClassName}
-        disabled={storageAvailable <= 0}
+        disabled={storageAvailable <= 1024} // Disable if less than 1KB available
       >
         {children}
       </Button>
-      {storageAvailable <= 0 && (
+      {storageAvailable <= 1024 && (
         <p className="text-red-400 text-sm mt-2">Storage limit reached. Please contact support to upgrade.</p>
       )}
 
