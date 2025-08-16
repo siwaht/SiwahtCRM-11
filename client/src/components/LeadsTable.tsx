@@ -2,22 +2,16 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
-  Download, 
-  Upload, 
   Plus, 
   Search, 
   Eye, 
   Edit, 
   Trash2,
-  ArrowUpDown,
-  Settings,
   Mail,
   Phone,
   AlertTriangle
@@ -33,8 +27,7 @@ export default function LeadsTable() {
   const [filters, setFilters] = useState({
     search: "",
     status: "all",
-    assignedTo: "all",
-    source: "",
+    priority: "all"
   });
 
   const queryClient = useQueryClient();
@@ -43,12 +36,10 @@ export default function LeadsTable() {
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads", filters],
     queryFn: async () => {
-      // Build query parameters from filters
       const params = new URLSearchParams();
       if (filters.search) params.set('search', filters.search);
       if (filters.status && filters.status !== 'all') params.set('status', filters.status);
-      if (filters.assignedTo && filters.assignedTo !== 'all') params.set('assignedTo', filters.assignedTo);
-      if (filters.source) params.set('source', filters.source);
+      if (filters.priority && filters.priority !== 'all') params.set('priority', filters.priority);
       
       const url = `/api/leads${params.toString() ? `?${params.toString()}` : ''}`;
       const response = await fetch(url, { credentials: 'include' });
@@ -102,32 +93,21 @@ export default function LeadsTable() {
 
   const getStatusBadge = (status: string) => {
     const statusColors = {
-      new: "bg-slate-500/20 text-slate-400",
-      contacted: "bg-blue-500/20 text-blue-400",
-      qualified: "bg-emerald-500/20 text-emerald-400",
-      proposal: "bg-amber-500/20 text-amber-400",
-      negotiation: "bg-orange-500/20 text-orange-400",
-      won: "bg-green-500/20 text-green-400",
-      lost: "bg-red-500/20 text-red-400",
+      new: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+      contacted: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      qualified: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+      proposal: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+      negotiation: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+      won: "bg-green-500/20 text-green-400 border-green-500/30",
+      lost: "bg-red-500/20 text-red-400 border-red-500/30",
     };
-
-    return (
-      <Badge className={statusColors[status as keyof typeof statusColors] || statusColors.new}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Badge>
-    );
+    return statusColors[status as keyof typeof statusColors] || statusColors.new;
   };
 
   const getAssigneeName = (assignedTo: number | null) => {
     if (!assignedTo) return "Unassigned";
     const user = users.find((u: any) => u.id === assignedTo);
-    return user ? user.name.split(" ").map((n: string) => n[0]).join("") + "." : "Unknown";
-  };
-
-  const getEngineerName = (assignedEngineer: number | null) => {
-    if (!assignedEngineer) return "—";
-    const user = users.find((u: any) => u.id === assignedEngineer);
-    return user ? user.name.split(" ").map((n: string) => n[0]).join("") + "." : "Unknown";
+    return user ? user.name : "Unknown";
   };
 
   const getPriorityColor = (priority: string) => {
@@ -135,12 +115,8 @@ export default function LeadsTable() {
       case 'high': return 'bg-red-500/20 text-red-400 border-red-400/30';
       case 'medium': return 'bg-amber-500/20 text-amber-400 border-amber-400/30';
       case 'low': return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
-      default: return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
+      default: return 'bg-amber-500/20 text-amber-400 border-amber-400/30';
     }
-  };
-
-  const applyFilters = () => {
-    queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
   };
 
   if (isLoading) {
@@ -155,94 +131,79 @@ export default function LeadsTable() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-4 sm:space-y-0">
+      <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold">Lead Management</h2>
-          <p className="text-slate-400 mt-1 text-sm sm:text-base">{leads.length} of {leads.length} leads</p>
+          <h2 className="text-xl font-bold text-white">Lead Management</h2>
+          <p className="text-slate-400 mt-1">{leads.length} of {leads.length} leads</p>
         </div>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
-          <div className="flex space-x-2 sm:space-x-3">
-            <Button variant="outline" className="flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial" data-testid="button-export">
-              <Download className="h-4 w-4" />
-              <span className="hidden xs:inline">Export</span>
-            </Button>
-            <Button variant="outline" className="flex items-center justify-center space-x-1 sm:space-x-2 flex-1 sm:flex-initial" data-testid="button-import">
-              <Upload className="h-4 w-4" />
-              <span className="hidden xs:inline">Import</span>
-            </Button>
-          </div>
-          <Button
-            onClick={() => {
-              setEditingLead(null);
-              setShowLeadForm(true);
-            }}
-            className="flex items-center justify-center space-x-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700"
-            data-testid="button-add-lead"
-          >
-            <Plus className="h-4 w-4" />
-            <span>Add Lead</span>
-          </Button>
-        </div>
+        <Button
+          onClick={() => {
+            setEditingLead(null);
+            setShowLeadForm(true);
+          }}
+          className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2"
+          data-testid="button-add-lead"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Lead
+        </Button>
       </div>
 
       {/* Filters */}
-      <Card className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Input
-                  placeholder="Search leads..."
-                  value={filters.search}
-                  onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-                  className="pl-10 bg-slate-800/50 border-slate-700"
-                  data-testid="input-search"
-                />
-                <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-              </div>
-            </div>
-            <div className="w-40">
-              <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
-                <SelectTrigger className="bg-slate-800/50 border-slate-700" data-testid="select-status">
-                  <SelectValue placeholder="All Status" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="new">New</SelectItem>
-                  <SelectItem value="contacted">Contacted</SelectItem>
-                  <SelectItem value="qualified">Qualified</SelectItem>
-                  <SelectItem value="proposal">Proposal</SelectItem>
-                  <SelectItem value="won">Won</SelectItem>
-                  <SelectItem value="lost">Lost</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-40">
-              <Select value="all" onValueChange={(value) => {}}>
-                <SelectTrigger className="bg-slate-800/50 border-slate-700">
-                  <SelectValue placeholder="All Priority" />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="all">All Priority</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="flex items-center gap-4">
+        <div className="flex-1 max-w-md">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+            <Input
+              placeholder="Search leads..."
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              className="pl-10 bg-slate-800/50 border-slate-700 text-white"
+              data-testid="input-search"
+            />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="w-32">
+          <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
+            <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white" data-testid="select-status">
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="new">New</SelectItem>
+              <SelectItem value="contacted">Contacted</SelectItem>
+              <SelectItem value="qualified">Qualified</SelectItem>
+              <SelectItem value="proposal">Proposal</SelectItem>
+              <SelectItem value="won">Won</SelectItem>
+              <SelectItem value="lost">Lost</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="w-32">
+          <Select value={filters.priority} onValueChange={(value) => setFilters({ ...filters, priority: value })}>
+            <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+              <SelectValue placeholder="All Priority" />
+            </SelectTrigger>
+            <SelectContent className="bg-slate-800 border-slate-700">
+              <SelectItem value="all">All Priority</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
-      {/* Table Header */}
-      <Card className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50">
-        <div className="px-6 py-4">
+      {/* Table */}
+      <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
+        {/* Table Header */}
+        <div className="bg-slate-700/30 px-4 py-3 border-b border-slate-600/50">
           <div className="grid grid-cols-12 gap-4 text-xs font-medium text-slate-400 uppercase tracking-wider">
             <div className="col-span-1"></div>
-            <div className="col-span-3">Lead</div>
-            <div className="col-span-1">Contact</div>
+            <div className="col-span-2">Lead</div>
+            <div className="col-span-2">Contact</div>
             <div className="col-span-1">Status</div>
             <div className="col-span-1">Priority</div>
             <div className="col-span-2">Products</div>
@@ -252,13 +213,11 @@ export default function LeadsTable() {
             <div className="col-span-1">Actions</div>
           </div>
         </div>
-      </Card>
 
-      {/* Leads List */}
-      <div className="space-y-2">
-        {leads.map((lead: Lead) => (
-          <Card key={lead.id} className="backdrop-blur-sm bg-slate-800/30 border-slate-700/50 hover:bg-slate-800/40 transition-colors" data-testid={`card-lead-${lead.id}`}>
-            <div className="px-6 py-4">
+        {/* Table Rows */}
+        <div className="divide-y divide-slate-700/50">
+          {leads.map((lead: Lead) => (
+            <div key={lead.id} className="px-4 py-4 hover:bg-slate-700/20 transition-colors" data-testid={`row-lead-${lead.id}`}>
               <div className="grid grid-cols-12 gap-4 items-center">
                 {/* Checkbox */}
                 <div className="col-span-1">
@@ -266,11 +225,11 @@ export default function LeadsTable() {
                 </div>
                 
                 {/* Lead */}
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white font-medium text-sm">
-                        {(lead.company || lead.name).substring(0, 2).toUpperCase()}
+                        {lead.name.split(' ').map(n => n[0]).join('').toUpperCase()}
                       </span>
                     </div>
                     <div className="min-w-0">
@@ -283,16 +242,16 @@ export default function LeadsTable() {
                 </div>
                 
                 {/* Contact */}
-                <div className="col-span-1">
-                  <div className="text-xs text-slate-300">
-                    <div className="flex items-center gap-1 mb-1">
-                      <Mail className="h-3 w-3" />
-                      <span className="text-blue-400 truncate">{lead.email}</span>
+                <div className="col-span-2">
+                  <div className="text-xs text-slate-300 space-y-1">
+                    <div className="flex items-center gap-1">
+                      <Mail className="h-3 w-3 text-slate-400" />
+                      <span className="text-blue-400">{lead.email}</span>
                     </div>
                     {lead.phone && (
                       <div className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        <span className="truncate">{lead.phone}</span>
+                        <Phone className="h-3 w-3 text-slate-400" />
+                        <span>{lead.phone}</span>
                       </div>
                     )}
                   </div>
@@ -301,15 +260,15 @@ export default function LeadsTable() {
                 {/* Status */}
                 <div className="col-span-1">
                   {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 ? (
-                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs">
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs px-2 py-1">
                       In Development
                     </Badge>
                   ) : lead.status === 'won' ? (
-                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs">
+                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs px-2 py-1">
                       Design Phase
                     </Badge>
                   ) : (
-                    <Badge className={`${getStatusBadge(lead.status).props.className} text-xs`}>
+                    <Badge className={`${getStatusBadge(lead.status)} text-xs px-2 py-1 border`}>
                       {lead.status}
                     </Badge>
                   )}
@@ -319,7 +278,7 @@ export default function LeadsTable() {
                 <div className="col-span-1">
                   <div className="flex items-center gap-1">
                     {lead.priority === 'high' && <AlertTriangle className="h-3 w-3 text-red-400" />}
-                    <Badge className={`${getPriorityColor(lead.priority || 'medium')} text-xs`}>
+                    <Badge className={`${getPriorityColor(lead.priority || 'medium')} text-xs px-2 py-1 border`}>
                       {lead.priority === 'high' ? 'Hot' : lead.priority || 'medium'}
                     </Badge>
                   </div>
@@ -330,18 +289,18 @@ export default function LeadsTable() {
                   <div className="flex flex-wrap gap-1">
                     {lead.status === 'won' && (
                       <>
-                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs">
+                        <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs px-2 py-1">
                           AI Avatar Creation
                         </Badge>
                         {(lead.engineeringProgress || 0) > 0 && (
-                          <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-xs">
+                          <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-xs px-2 py-1">
                             AI Generated Video Ad
                           </Badge>
                         )}
                       </>
                     )}
                     {lead.status !== 'won' && (
-                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs">
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs px-2 py-1">
                         AI Podcast Production
                       </Badge>
                     )}
@@ -375,7 +334,7 @@ export default function LeadsTable() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleView(lead)}
-                      className="p-1 hover:bg-slate-700/50 rounded"
+                      className="p-1.5 hover:bg-slate-700/50 rounded"
                       data-testid={`button-view-${lead.id}`}
                     >
                       <Eye className="h-4 w-4 text-slate-400" />
@@ -384,7 +343,7 @@ export default function LeadsTable() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleEdit(lead)}
-                      className="p-1 hover:bg-slate-700/50 rounded"
+                      className="p-1.5 hover:bg-slate-700/50 rounded"
                       data-testid={`button-edit-${lead.id}`}
                     >
                       <Edit className="h-4 w-4 text-slate-400" />
@@ -393,7 +352,7 @@ export default function LeadsTable() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDelete(lead.id)}
-                      className="p-1 hover:bg-red-500/20 text-red-400 rounded"
+                      className="p-1.5 hover:bg-red-500/20 text-red-400 rounded"
                       data-testid={`button-delete-${lead.id}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -402,8 +361,8 @@ export default function LeadsTable() {
                 </div>
               </div>
             </div>
-          </Card>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Lead Form Modal */}
