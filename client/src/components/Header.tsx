@@ -161,10 +161,10 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 backdrop-blur-sm bg-slate-900/80 border-b border-slate-700/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden">
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center overflow-hidden">
               <img 
                 src={siwatLogoPath} 
                 alt="Siwaht Logo" 
@@ -172,13 +172,13 @@ export default function Header() {
               />
             </div>
             <div>
-              <h1 className="text-xl font-bold">Siwaht CRM</h1>
-              <p className="text-xs text-slate-400">AI Service Platform</p>
+              <h1 className="text-lg sm:text-xl font-bold">Siwaht CRM</h1>
+              <p className="text-xs text-slate-400 hidden sm:block">AI Service Platform</p>
             </div>
           </div>
 
           {/* User Menu */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Notifications */}
             <Button
               variant="ghost"
@@ -187,23 +187,23 @@ export default function Header() {
               className="p-2 hover:bg-slate-800/50 rounded-lg transition-colors relative"
               data-testid="button-notifications"
             >
-              <Bell className="h-5 w-5 text-slate-400" />
+              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
               {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                  {unreadCount}
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-[10px] sm:text-xs">
+                  {unreadCount > 9 ? '9+' : unreadCount}
                 </span>
               )}
             </Button>
             
             {/* User Profile */}
-            <div className="flex items-center space-x-3 bg-slate-800/30 px-3 py-2 rounded-xl">
+            <div className="flex items-center space-x-1 sm:space-x-3 bg-slate-800/30 px-2 sm:px-3 py-2 rounded-xl">
               <div 
-                className="flex items-center space-x-3 cursor-pointer hover:bg-slate-700/30 rounded-lg px-2 py-1 transition-colors flex-1"
+                className="flex items-center space-x-2 sm:space-x-3 cursor-pointer hover:bg-slate-700/30 rounded-lg px-1 sm:px-2 py-1 transition-colors flex-1"
                 onClick={handleProfileClick}
                 data-testid="button-user-profile"
               >
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
+                <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                  <User className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                 </div>
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium text-white" data-testid="text-username">
@@ -230,7 +230,7 @@ export default function Header() {
                 className="p-1 hover:bg-slate-700/50"
                 data-testid="button-logout"
               >
-                <LogOut className="h-4 w-4 text-slate-400 hover:text-slate-300" />
+                <LogOut className="h-3 w-3 sm:h-4 sm:w-4 text-slate-400 hover:text-slate-300" />
               </Button>
             </div>
           </div>

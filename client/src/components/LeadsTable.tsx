@@ -215,102 +215,108 @@ export default function LeadsTable() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white">Lead Management</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-white">Lead Management</h2>
           <p className="text-slate-400 mt-1">{leads.length} of {leads.length} leads</p>
         </div>
-        <div className="flex items-center gap-3">
-          {/* Export CSV Button */}
-          <Button
-            onClick={handleExportCSV}
-            variant="outline"
-            className="border-slate-600 text-slate-300 hover:bg-slate-700/50 px-4 py-2"
-            data-testid="button-export-csv"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
-          
-          {/* Import CSV Button */}
-          <label className="cursor-pointer">
-            <div className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-600 text-slate-300 hover:bg-slate-700/50 px-4 py-2 h-10">
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-            </div>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={handleImportCSV}
-              className="hidden"
-              data-testid="input-csv-file"
-            />
-          </label>
-          
-          {/* Add Lead Button */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          {/* Add Lead Button - Priority on mobile */}
           <Button
             onClick={() => {
               setEditingLead(null);
               setShowLeadForm(true);
             }}
-            className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2"
+            className="bg-indigo-600 hover:bg-indigo-700 px-4 py-2 order-first sm:order-last"
             data-testid="button-add-lead"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Lead
           </Button>
+          
+          <div className="flex gap-2">
+            {/* Export CSV Button */}
+            <Button
+              onClick={handleExportCSV}
+              variant="outline"
+              className="border-slate-600 text-slate-300 hover:bg-slate-700/50 px-3 sm:px-4 py-2 text-sm flex-1 sm:flex-none"
+              data-testid="button-export-csv"
+            >
+              <Download className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Export CSV</span>
+              <span className="sm:hidden">Export</span>
+            </Button>
+            
+            {/* Import CSV Button */}
+            <label className="cursor-pointer flex-1 sm:flex-none">
+              <div className="inline-flex w-full sm:w-auto items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-slate-600 text-slate-300 hover:bg-slate-700/50 px-3 sm:px-4 py-2 h-10">
+                <Upload className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Import CSV</span>
+                <span className="sm:hidden">Import</span>
+              </div>
+              <input
+                type="file"
+                accept=".csv"
+                onChange={handleImportCSV}
+                className="hidden"
+                data-testid="input-csv-file"
+              />
+            </label>
+          </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+        <div className="flex-1 order-1 sm:order-none">
           <div className="relative">
             <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
             <Input
               placeholder="Search leads..."
               value={filters.search}
               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-              className="pl-10 bg-slate-800/50 border-slate-700 text-white"
+              className="pl-10 bg-slate-800/50 border-slate-700 text-white placeholder:text-slate-400"
               data-testid="input-search"
             />
           </div>
         </div>
-        <div className="w-32">
-          <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
-            <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white" data-testid="select-status">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="contacted">Contacted</SelectItem>
-              <SelectItem value="qualified">Qualified</SelectItem>
-              <SelectItem value="proposal">Proposal</SelectItem>
-              <SelectItem value="won">Won</SelectItem>
-              <SelectItem value="lost">Lost</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="w-32">
-          <Select value={filters.priority} onValueChange={(value) => setFilters({ ...filters, priority: value })}>
-            <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
-              <SelectValue placeholder="All Priority" />
-            </SelectTrigger>
-            <SelectContent className="bg-slate-800 border-slate-700">
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="flex gap-2 sm:gap-0 order-2 sm:order-none">
+          <div className="flex-1 sm:w-32">
+            <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
+              <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white" data-testid="select-status">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="new">New</SelectItem>
+                <SelectItem value="contacted">Contacted</SelectItem>
+                <SelectItem value="qualified">Qualified</SelectItem>
+                <SelectItem value="proposal">Proposal</SelectItem>
+                <SelectItem value="won">Won</SelectItem>
+                <SelectItem value="lost">Lost</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex-1 sm:w-32 sm:ml-4">
+            <Select value={filters.priority} onValueChange={(value) => setFilters({ ...filters, priority: value })}>
+              <SelectTrigger className="bg-slate-800/50 border-slate-700 text-white">
+                <SelectValue placeholder="All Priority" />
+              </SelectTrigger>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="medium">Medium</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
-      {/* Table */}
+      {/* Desktop Table / Mobile Cards */}
       <div className="bg-slate-800/30 rounded-lg border border-slate-700/50 overflow-hidden">
-        {/* Table Header */}
-        <div className="bg-slate-700/30 px-4 py-3 border-b border-slate-600/50">
+        {/* Table Header - Hidden on mobile */}
+        <div className="hidden lg:block bg-slate-700/30 px-4 py-3 border-b border-slate-600/50">
           <div className="grid grid-cols-12 gap-1 text-xs font-medium text-slate-400 uppercase tracking-wider">
             <div className="col-span-1"></div>
             <div className="col-span-2">Lead</div>
@@ -325,17 +331,138 @@ export default function LeadsTable() {
           </div>
         </div>
 
-        {/* Table Rows */}
+        {/* Responsive Content */}
         <div className="divide-y divide-slate-700/50">
           {leads.map((lead: Lead) => (
-            <div key={lead.id} className="px-4 py-4 hover:bg-slate-700/20 transition-colors" data-testid={`row-lead-${lead.id}`}>
-              <div className="grid grid-cols-12 gap-1 items-center">
-                {/* Checkbox */}
+            <div key={lead.id} className="p-4 hover:bg-slate-700/20 transition-colors" data-testid={`row-lead-${lead.id}`}>
+              {/* Mobile Card Layout */}
+              <div className="lg:hidden space-y-4">
+                {/* Lead Header */}
+                <div className="flex items-center space-x-3 mb-4">
+                  <div className="w-12 h-12 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-medium">
+                      {lead.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-base font-semibold text-white truncate">{lead.name}</h3>
+                    <p className="text-sm text-slate-400 truncate">{lead.company || lead.source || 'Website'}</p>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleView(lead)}
+                      className="p-2 hover:bg-slate-700/50 rounded"
+                      data-testid={`button-view-${lead.id}`}
+                    >
+                      <Eye className="h-4 w-4 text-slate-400" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEdit(lead)}
+                      className="p-2 hover:bg-slate-700/50 rounded"
+                      data-testid={`button-edit-${lead.id}`}
+                    >
+                      <Edit className="h-4 w-4 text-slate-400" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(lead.id)}
+                      className="p-2 hover:bg-red-500/20 text-red-400 rounded"
+                      data-testid={`button-delete-${lead.id}`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-4 w-4 text-slate-400" />
+                    <span className="text-blue-400 text-sm">{lead.email}</span>
+                  </div>
+                  {lead.phone && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-slate-400" />
+                      <span className="text-slate-300 text-sm">{lead.phone}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Status and Priority Row */}
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 ? (
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-sm px-3 py-1">
+                        In Development
+                      </Badge>
+                    ) : lead.status === 'won' ? (
+                      <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-sm px-3 py-1">
+                        Design Phase
+                      </Badge>
+                    ) : (
+                      <Badge className={`${getStatusBadge(lead.status)} text-sm px-3 py-1 border`}>
+                        {lead.status}
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {lead.priority === 'high' && <AlertTriangle className="h-4 w-4 text-red-400" />}
+                    <Badge className={`${getPriorityColor(lead.priority || 'medium')} text-sm px-3 py-1 border`}>
+                      {lead.priority === 'high' ? 'Hot' : lead.priority || 'medium'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Value and Product Row */}
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-slate-300">
+                    <span className="text-slate-400">Value: </span>
+                    <span className="text-green-400 font-semibold">
+                      ${lead.value ? lead.value.toLocaleString() : '0'}
+                    </span>
+                  </div>
+                  <div className="text-sm">
+                    {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 && (
+                      <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-sm px-2 py-1">
+                        Video Ad
+                      </Badge>
+                    )}
+                    {lead.status === 'won' && (lead.engineeringProgress || 0) === 0 && (
+                      <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-sm px-2 py-1">
+                        AI Avatar
+                      </Badge>
+                    )}
+                    {lead.status !== 'won' && lead.assignedProduct && (
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-sm px-2 py-1">
+                        Podcast
+                      </Badge>
+                    )}
+                    {!lead.assignedProduct && (
+                      <span className="text-sm text-slate-500">No Product</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Assigned To */}
+                <div className="text-sm text-slate-400 pt-2 border-t border-slate-700/50">
+                  <span className="text-slate-500">Assigned to: </span>
+                  <span>{getAssigneeName(lead.assignedTo)}</span>
+                </div>
+              </div>
+
+              {/* Desktop Table Layout */}
+              <div className="hidden lg:grid grid-cols-12 gap-1 items-center">
+                {/* Desktop: Checkbox */}
                 <div className="col-span-1">
                   <input type="checkbox" className="w-4 h-4 text-indigo-600 bg-slate-700 border-slate-600 rounded focus:ring-indigo-500" />
                 </div>
                 
-                {/* Lead */}
+                {/* Desktop: Lead */}
                 <div className="col-span-2">
                   <div className="flex items-center space-x-3">
                     <div className="w-10 h-10 bg-slate-600 rounded-full flex items-center justify-center flex-shrink-0">
@@ -351,8 +478,8 @@ export default function LeadsTable() {
                     </div>
                   </div>
                 </div>
-                
-                {/* Contact */}
+
+                {/* Desktop: Contact */}
                 <div className="col-span-2">
                   <div className="text-xs text-slate-300 space-y-1">
                     <div className="flex items-center gap-1">
