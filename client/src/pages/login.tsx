@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Brain } from "lucide-react";
+import siwathLogo from "@assets/siwath_logo_withoutbackground_1755347797146.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -39,8 +39,8 @@ export default function Login() {
       <div className="w-full max-w-md">
         {/* Company Logo/Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mb-4">
-            <Brain className="h-8 w-8 text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src={siwathLogo} alt="Siwaht Logo" className="h-16 w-16" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-purple-600 bg-clip-text text-transparent">
             Siwaht CRM
