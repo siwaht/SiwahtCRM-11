@@ -404,7 +404,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                 <span className="text-slate-300 text-sm">{lead.source || 'Website'}</span>
               </div>
               <div className="space-y-1">
-                <span className="text-slate-400 text-xs uppercase tracking-wider">Deal Value</span>
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Deal Value: </span>
                 <span className="text-green-400 font-medium text-sm">${lead.value?.toLocaleString() || '45,000'}</span>
               </div>
             </div>
