@@ -94,7 +94,7 @@ export interface IStorage {
   deleteMcpServer(id: number): Promise<boolean>;
 
   // Analytics
-  getAnalytics(): Promise<AnalyticsData>;
+  getAnalytics(userId?: number): Promise<AnalyticsData>;
 
   // Database Management
   exportDatabase(): Promise<DatabaseExport>;
@@ -536,27 +536,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Analytics
-  async getAnalytics(): Promise<AnalyticsData> {
-    const totalLeadsQuery = await db.select({ count: sql<number>`count(*)` }).from(leads);
+  async getAnalytics(userId?: number): Promise<AnalyticsData> {
+    // Apply role-based filtering if userId is provided (for agents)
+    const baseFilter = userId ? eq(leads.assignedTo, userId) : undefined;
+
+    const totalLeadsQuery = await db.select({ count: sql<number>`count(*)` }).from(leads).where(baseFilter);
     const totalLeads = totalLeadsQuery[0]?.count || 0;
 
-    const wonLeadsQuery = await db.select({ count: sql<number>`count(*)` }).from(leads).where(eq(leads.status, 'won'));
+    const wonLeadsQuery = await db.select({ count: sql<number>`count(*)` }).from(leads).where(
+      userId ? sql`${eq(leads.assignedTo, userId)} AND ${eq(leads.status, 'won')}` : eq(leads.status, 'won')
+    );
     const wonLeads = wonLeadsQuery[0]?.count || 0;
 
     const conversionRate = totalLeads > 0 ? (wonLeads / totalLeads) * 100 : 0;
 
     const pipelineValueQuery = await db.select({ 
       sum: sql<number>`coalesce(sum(value), 0)` 
-    }).from(leads).where(sql`status NOT IN ('won', 'lost')`);
+    }).from(leads).where(
+      userId ? sql`${eq(leads.assignedTo, userId)} AND status NOT IN ('won', 'lost')` : sql`status NOT IN ('won', 'lost')`
+    );
     const pipelineValue = pipelineValueQuery[0]?.sum || 0;
 
-    const activeProjectsQuery = await db.select({ count: sql<number>`count(*)` }).from(leads).where(eq(leads.status, 'won'));
+    const activeProjectsQuery = await db.select({ count: sql<number>`count(*)` }).from(leads).where(
+      userId ? sql`${eq(leads.assignedTo, userId)} AND ${eq(leads.status, 'won')}` : eq(leads.status, 'won')
+    );
     const activeProjects = activeProjectsQuery[0]?.count || 0;
 
     const leadsByStatusQuery = await db.select({
       status: leads.status,
       count: sql<number>`count(*)`
-    }).from(leads).groupBy(leads.status);
+    }).from(leads).where(baseFilter).groupBy(leads.status);
 
     const leadsByStatus = leadsByStatusQuery.map(row => ({
       status: row.status,
@@ -567,7 +576,9 @@ export class DatabaseStorage implements IStorage {
     const revenueByMonthQuery = await db.select({
       month: sql<string>`to_char(created_at, 'YYYY-MM')`,
       revenue: sql<number>`coalesce(sum(value), 0)`
-    }).from(leads).where(eq(leads.status, 'won')).groupBy(sql`to_char(created_at, 'YYYY-MM')`).orderBy(sql`to_char(created_at, 'YYYY-MM')`);
+    }).from(leads).where(
+      userId ? sql`${eq(leads.assignedTo, userId)} AND ${eq(leads.status, 'won')}` : eq(leads.status, 'won')
+    ).groupBy(sql`to_char(created_at, 'YYYY-MM')`).orderBy(sql`to_char(created_at, 'YYYY-MM')`);
 
     const revenueByMonth = revenueByMonthQuery.map(row => ({
       month: row.month,

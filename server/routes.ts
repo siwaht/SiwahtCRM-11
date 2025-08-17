@@ -948,7 +948,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics
   app.get('/api/analytics', requireAuth, async (req, res) => {
     try {
-      const analytics = await storage.getAnalytics();
+      // Role-based analytics: agents only see analytics for leads they created
+      let userId = undefined;
+      if (req.user!.role === 'agent') {
+        userId = req.user!.id;
+      }
+      
+      const analytics = await storage.getAnalytics(userId);
       res.json(analytics);
     } catch (error) {
       console.error('Get analytics error:', error);
