@@ -53,6 +53,13 @@ Security is implemented through multiple layers:
   - Admin accounts are preserved during database imports
   - Protection status monitoring with admin count tracking
 
+### Role-Based Access Control
+The system implements comprehensive role-based access control for lead management:
+- **Agents**: Can only view, edit, and interact with leads they created (assignedTo = their user ID)
+- **Engineers and Admins**: Have full access to all leads in the system
+- **Permission Enforcement**: Applied across all endpoints including lead viewing, editing, interactions, attachments, and CSV exports
+- **Lead Creation**: When agents create leads, they are automatically assigned as the lead owner to maintain visibility
+
 ### External Integrations
 The system is designed for extensibility with external services:
 - **Enhanced Webhook System**: Configurable webhooks for lead and interaction events with HMAC signature verification

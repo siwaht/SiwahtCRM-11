@@ -287,6 +287,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate lead data (without productIds)
       const leadData = insertLeadSchema.parse(leadDataRaw);
       
+      // For role-based access control: ensure the creator is assigned to the lead they create
+      if (!leadData.assignedTo && req.user!.role === 'agent') {
+        leadData.assignedTo = req.user!.id;
+      }
+      
       // Create lead with productIds
       const lead = await storage.createLead(leadData, productIds);
       // Get creator information and lead products for comprehensive webhook payload
