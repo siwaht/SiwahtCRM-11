@@ -47,13 +47,13 @@ export default function EngineeringDashboard() {
     queryKey: ["/api/leads"],
   });
 
+  // Get the actual user ID (handle nested user object)
+  const userId = (user as any)?.user?.id || user?.id;
+  
   // Filter leads for engineer's projects only
   const engineerProjects = leads.filter((lead: Lead) => {
-    console.log('Lead:', lead.id, 'assignedEngineer:', lead.assignedEngineer, 'user.id:', user?.id);
-    return lead.assignedEngineer === user?.id; // Show all leads assigned to this engineer
+    return lead.assignedEngineer === userId; // Show all leads assigned to this engineer
   });
-
-  console.log('Total leads:', leads.length, 'Engineer projects:', engineerProjects.length);
 
   const pendingProjects = engineerProjects.filter(lead => (lead.engineeringProgress || 0) === 0);
   const activeProjects = engineerProjects.filter(lead => (lead.engineeringProgress || 0) > 0 && (lead.engineeringProgress || 0) < 100);
@@ -152,7 +152,7 @@ export default function EngineeringDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Technical Implementation Dashboard for {user?.name || 'Engineer'}</h2>
+          <h2 className="text-2xl font-bold">Technical Implementation Dashboard for {(user as any)?.user?.name || user?.name || 'Engineer'}</h2>
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
