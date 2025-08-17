@@ -371,8 +371,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const interaction = await storage.createInteraction(interactionData);
       
-      // Trigger webhooks
-      await triggerWebhooks('interaction.created', interaction);
+      // Get lead and agent information for enhanced webhook payload
+      const lead = await storage.getLead(leadId);
+      const agent = await storage.getUser(req.session.userId);
+
+      // Create enhanced payload with lead and agent information
+      const webhookPayload = {
+        ...interaction,
+        lead: lead ? {
+          id: lead.id,
+          name: lead.name,
+          email: lead.email,
+          company: lead.company,
+          status: lead.status,
+          value: lead.value
+        } : null,
+        agent: agent ? {
+          id: agent.id,
+          name: agent.name,
+          email: agent.email,
+          role: agent.role
+        } : null
+      };
+      
+      // Trigger webhooks with enhanced payload
+      await triggerWebhooks('interaction.created', webhookPayload);
       
       res.status(201).json(interaction);
     } catch (error) {
@@ -399,8 +422,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Interaction not found' });
       }
 
-      // Trigger webhooks
-      await triggerWebhooks('interaction.updated', interaction);
+      // Get lead and agent information for enhanced webhook payload
+      const lead = await storage.getLead(interaction.leadId);
+      const agent = await storage.getUser(interaction.userId);
+
+      // Create enhanced payload with lead and agent information
+      const webhookPayload = {
+        ...interaction,
+        lead: lead ? {
+          id: lead.id,
+          name: lead.name,
+          email: lead.email,
+          company: lead.company,
+          status: lead.status,
+          value: lead.value
+        } : null,
+        agent: agent ? {
+          id: agent.id,
+          name: agent.name,
+          email: agent.email,
+          role: agent.role
+        } : null
+      };
+
+      // Trigger webhooks with enhanced payload
+      await triggerWebhooks('interaction.updated', webhookPayload);
       
       res.json(interaction);
     } catch (error) {
@@ -430,13 +476,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Interaction not found' });
       }
       
+      // Get lead and agent information for enhanced webhook payload
+      const lead = await storage.getLead(interaction.leadId);
+      const agent = await storage.getUser(interaction.userId);
+
+      // Create enhanced payload with lead and agent information
+      const webhookPayload = {
+        ...interaction,
+        lead: lead ? {
+          id: lead.id,
+          name: lead.name,
+          email: lead.email,
+          company: lead.company,
+          status: lead.status,
+          value: lead.value
+        } : null,
+        agent: agent ? {
+          id: agent.id,
+          name: agent.name,
+          email: agent.email,
+          role: agent.role
+        } : null
+      };
+      
       const success = await storage.deleteInteraction(interactionId);
       if (!success) {
         return res.status(404).json({ message: 'Interaction not found' });
       }
 
-      // Trigger webhooks
-      await triggerWebhooks('interaction.deleted', interaction);
+      // Trigger webhooks with enhanced payload
+      await triggerWebhooks('interaction.deleted', webhookPayload);
       
       res.json({ message: 'Interaction deleted successfully' });
     } catch (error) {

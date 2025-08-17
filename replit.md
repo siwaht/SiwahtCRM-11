@@ -50,7 +50,10 @@ Security is implemented through multiple layers:
 
 ### External Integrations
 The system is designed for extensibility with external services:
-- **Webhook System**: Configurable webhooks for lead events with HMAC signature verification
+- **Enhanced Webhook System**: Configurable webhooks for lead and interaction events with HMAC signature verification
+  - Interaction webhooks now include complete lead information (name, email, company, status, value)
+  - Interaction webhooks now include complete agent information (name, email, role)
+  - Supports events: lead.created, lead.updated, lead.deleted, interaction.created, interaction.updated, interaction.deleted
 - **MCP Protocol**: WebSocket-based AI agent integration for automated lead processing
 - **File Storage**: Local file system with plans for cloud storage integration
 - **Database**: PostgreSQL via Neon serverless with connection pooling
