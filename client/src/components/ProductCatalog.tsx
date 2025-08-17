@@ -239,17 +239,34 @@ export default function ProductCatalog() {
     }
 
     try {
-      const text = await file.text();
+      let text = await file.text();
+      
+      // Clean up common CSV formatting issues
+      text = text
+        .replace(/\r\n/g, '\n')  // Normalize line endings
+        .replace(/\r/g, '\n')    // Handle old Mac line endings
+        .trim();                 // Remove leading/trailing whitespace
 
-      // Use Papa Parse for proper CSV handling
+      // Use Papa Parse for proper CSV handling with error recovery
       const csvData = Papa.parse(text, {
         header: false,
         skipEmptyLines: true,
-        transform: (value: string) => value.trim()
+        transform: (value: string) => value.trim(),
+        quotes: true,
+        quoteChar: '"',
+        escapeChar: '"',
+        delimiter: ',',
+        newline: '',
+        skipFirstNLines: 0
       });
 
-      if (csvData.errors.length > 0) {
-        throw new Error(`CSV parsing error: ${csvData.errors[0].message}`);
+      // Only throw error for critical parsing issues, not warnings
+      const criticalErrors = csvData.errors.filter(error => 
+        error.type === 'Delimiter' || error.type === 'FieldMismatch'
+      );
+      
+      if (criticalErrors.length > 0) {
+        throw new Error(`CSV parsing error: ${criticalErrors[0].message}`);
       }
 
       const rows = csvData.data as string[][];
