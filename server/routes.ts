@@ -274,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const webhookPayload = {
         ...lead,
         interestedProductNames: leadWithProducts?.products?.map(p => p.name) || [],
-        dealValue: lead.value, // Alias for value field
+        dealValue: lead.value ?? 0, // Alias for value field, default to 0 if null
         agent: creator ? {
           id: creator.id,
           name: creator.name,
