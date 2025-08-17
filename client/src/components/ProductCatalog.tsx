@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import ProductForm from "./ProductForm";
 import type { Product } from "@shared/schema";
+import Papa from "papaparse";
 
 const productIcons = {
   "AI Chatbot": Bot,
@@ -239,40 +240,27 @@ export default function ProductCatalog() {
 
     try {
       const text = await file.text();
-      const lines = text.split('\n').filter(line => line.trim());
+
+      // Use Papa Parse for proper CSV handling
+      const csvData = Papa.parse(text, {
+        header: false,
+        skipEmptyLines: true,
+        transform: (value: string) => value.trim()
+      });
+
+      if (csvData.errors.length > 0) {
+        throw new Error(`CSV parsing error: ${csvData.errors[0].message}`);
+      }
+
+      const rows = csvData.data as string[][];
       
-      if (lines.length < 2) {
+      if (rows.length < 2) {
         throw new Error("File must contain headers and at least one data row");
       }
 
-      // Better CSV parsing function that handles quoted values
-      const parseCSVLine = (line: string): string[] => {
-        const result: string[] = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            result.push(current.trim());
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        
-        result.push(current.trim());
-        return result;
-      };
-
-      const headers = parseCSVLine(lines[0]);
+      const headers = rows[0];
       
-      const products = lines.slice(1).map((line, index) => {
-        const values = parseCSVLine(line);
-        
+      const products = rows.slice(1).map((values, index) => {
         // Ensure we have enough values, pad with empty strings if needed
         while (values.length < 8) {
           values.push('');
