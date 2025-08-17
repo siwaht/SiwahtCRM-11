@@ -16,7 +16,7 @@ interface ProductFormProps {
 }
 
 export default function ProductForm({ product, onClose }: ProductFormProps) {
-  const [formData, setFormData] = useState<Partial<InsertProduct>>({
+  const [formData, setFormData] = useState<Partial<InsertProduct> & { tagsInput?: string }>({
     name: product?.name || "",
     price: product?.price || "",
     pitch: product?.pitch || "",
@@ -25,6 +25,7 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
     priority: product?.priority || "Medium",
     profitLevel: product?.profitLevel || "Standard",
     tags: product?.tags || [],
+    tagsInput: product?.tags?.join(", ") || "",
     displayOrder: product?.displayOrder || 0,
     isActive: product?.isActive ?? true,
   });
@@ -59,7 +60,9 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    mutation.mutate(formData);
+    // Remove tagsInput from the data sent to the server
+    const { tagsInput, ...submitData } = formData;
+    mutation.mutate(submitData);
   };
 
   const handleChange = (field: keyof InsertProduct, value: any) => {
@@ -67,8 +70,12 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
   };
 
   const handleTagsChange = (value: string) => {
-    const tags = value.split(',').map(tag => tag.trim()).filter(Boolean);
-    handleChange("tags", tags);
+    // Store the raw input value to allow proper editing
+    setFormData(prev => ({ 
+      ...prev, 
+      tagsInput: value,
+      tags: value.split(',').map(tag => tag.trim()).filter(Boolean)
+    }));
   };
 
   return (
@@ -179,7 +186,7 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
             <Label htmlFor="tags" className="text-slate-300">Tags</Label>
             <Input
               id="tags"
-              value={formData.tags?.join(", ") || ""}
+              value={formData.tagsInput || ""}
               onChange={(e) => handleTagsChange(e.target.value)}
               className="mt-1 bg-slate-800/50 border-slate-700"
               placeholder="AI, Automation, Chatbot (comma separated)"
