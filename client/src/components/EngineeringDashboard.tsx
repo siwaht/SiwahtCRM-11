@@ -44,7 +44,7 @@ export default function EngineeringDashboard() {
   const { toast } = useToast();
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
-    queryKey: ["/api/leads", { status: "won" }],
+    queryKey: ["/api/leads"],
   });
 
   // Filter leads for engineer's projects only
@@ -52,9 +52,10 @@ export default function EngineeringDashboard() {
     if (user?.role === "engineer" && lead.assignedEngineer !== user.id) {
       return false;
     }
-    return lead.status === "won"; // Only show won projects for implementation
+    return lead.assignedEngineer === user.id; // Show all leads assigned to this engineer
   });
 
+  const pendingProjects = engineerProjects.filter(lead => (lead.engineeringProgress || 0) === 0);
   const activeProjects = engineerProjects.filter(lead => (lead.engineeringProgress || 0) > 0 && (lead.engineeringProgress || 0) < 100);
   const completedProjects = engineerProjects.filter(lead => (lead.engineeringProgress || 0) === 100);
 
@@ -155,6 +156,10 @@ export default function EngineeringDashboard() {
         </div>
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
+            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <span className="text-sm text-slate-400">{pendingProjects.length} Pending</span>
+          </div>
+          <div className="flex items-center space-x-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span className="text-sm text-slate-400">{activeProjects.length} Active</span>
           </div>
@@ -177,6 +182,7 @@ export default function EngineeringDashboard() {
               </SelectTrigger>
               <SelectContent className="bg-slate-800 border-slate-700">
                 <SelectItem value="All Projects">All Projects</SelectItem>
+                <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Active">Active</SelectItem>
                 <SelectItem value="Completed">Completed</SelectItem>
               </SelectContent>
@@ -198,7 +204,14 @@ export default function EngineeringDashboard() {
           </div>
         </div>
         <div className="text-sm text-slate-400">
-          Showing {engineerProjects.length} of {engineerProjects.length} projects
+          Showing {(() => {
+            switch (filter) {
+              case "Pending": return pendingProjects.length;
+              case "Active": return activeProjects.length;
+              case "Completed": return completedProjects.length;
+              default: return engineerProjects.length;
+            }
+          })()} of {engineerProjects.length} projects
         </div>
       </div>
 
@@ -219,13 +232,30 @@ export default function EngineeringDashboard() {
           </div>
 
           <div className="space-y-3">
-            {engineerProjects.length === 0 ? (
-              <div className="text-center py-12">
-                <Settings className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                <p className="text-slate-400">No engineering projects assigned yet.</p>
-              </div>
-            ) : (
-              engineerProjects.map((project) => (
+            {(() => {
+              const getFilteredProjects = () => {
+                switch (filter) {
+                  case "Pending": return pendingProjects;
+                  case "Active": return activeProjects;
+                  case "Completed": return completedProjects;
+                  default: return engineerProjects;
+                }
+              };
+
+              const filteredProjects = getFilteredProjects();
+
+              return filteredProjects.length === 0 ? (
+                <div className="text-center py-12">
+                  <Settings className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-400">
+                    {filter === "All Projects" 
+                      ? "No engineering projects assigned yet."
+                      : `No ${filter.toLowerCase()} projects.`
+                    }
+                  </p>
+                </div>
+              ) : (
+                filteredProjects.map((project) => (
                 <Card
                   key={project.id}
                   className={`cursor-pointer transition-all duration-200 ${
@@ -284,7 +314,8 @@ export default function EngineeringDashboard() {
                   </CardContent>
                 </Card>
               ))
-            )}
+            );
+            })()}
           </div>
         </div>
 
