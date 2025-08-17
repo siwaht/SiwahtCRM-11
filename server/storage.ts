@@ -100,6 +100,7 @@ export interface IStorage {
   exportDatabase(): Promise<DatabaseExport>;
   importDatabase(data: DatabaseExport): Promise<boolean>;
   deleteDatabase(): Promise<boolean>;
+  getAdminCount(): Promise<number>;
 }
 
 export interface LeadFilters {
@@ -166,8 +167,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<boolean> {
+    // Check if user is admin before deletion
+    const user = await this.getUser(id);
+    if (user?.role === 'admin') {
+      throw new Error('Cannot delete admin users for security reasons');
+    }
+    
     const result = await db.delete(users).where(eq(users.id, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  async getAdminCount(): Promise<number> {
+    const [result] = await db.select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(eq(users.role, 'admin'));
+    return Number(result?.count) || 0;
   }
 
   async getAvailableEngineers(): Promise<User[]> {
@@ -600,13 +614,15 @@ export class DatabaseStorage implements IStorage {
 
   async importDatabase(data: DatabaseExport): Promise<boolean> {
     try {
-      // Clear all existing data first
+      // Clear all existing data first (preserves admin users)
       await this.deleteDatabase();
 
       // Import data in the correct order (respecting foreign key constraints)
       // First import independent tables
       if (data.data.users?.length > 0) {
-        for (const user of data.data.users) {
+        // Only import non-admin users to preserve existing admin accounts
+        const nonAdminUsers = data.data.users.filter(user => user.role !== 'admin');
+        for (const user of nonAdminUsers) {
           const { id, createdAt, updatedAt, ...insertData } = user;
           await db.insert(users).values(insertData);
         }
@@ -679,7 +695,11 @@ export class DatabaseStorage implements IStorage {
       await db.delete(webhooks);
       await db.delete(mcpServers);
       await db.delete(products);
-      await db.delete(users);
+      
+      // Preserve admin users during database reset
+      await db.delete(users).where(eq(users.role, 'agent'));
+      await db.delete(users).where(eq(users.role, 'engineer'));
+      
       return true;
     } catch (error) {
       console.error('Database deletion failed:', error);

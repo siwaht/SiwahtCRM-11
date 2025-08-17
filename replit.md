@@ -47,6 +47,11 @@ Security is implemented through multiple layers:
 - **Role-Based Access**: Middleware protection for sensitive endpoints
 - **Input Validation**: Zod schema validation on both client and server
 - **File Upload Security**: Size limits and type restrictions for attachments
+- **Admin Account Protection**: Multi-layer protection against accidental deletion
+  - Admin users cannot be deleted individually via API
+  - Admin accounts are preserved during database resets
+  - Admin accounts are preserved during database imports
+  - Protection status monitoring with admin count tracking
 
 ### External Integrations
 The system is designed for extensibility with external services:

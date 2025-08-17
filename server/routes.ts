@@ -123,6 +123,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'User not found' });
       }
       
+      // Prevent deletion of admin users
+      if (user.role === 'admin') {
+        return res.status(403).json({ message: 'Cannot delete admin users for security reasons' });
+      }
+      
       const success = await storage.deleteUser(id);
       if (!success) {
         return res.status(404).json({ message: 'User not found' });
@@ -135,7 +140,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       console.error('Delete user error:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      if (error instanceof Error && error.message.includes('Cannot delete admin users')) {
+        res.status(403).json({ message: error.message });
+      } else {
+        res.status(500).json({ message: 'Internal server error' });
+      }
     }
   });
 
@@ -722,15 +731,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/database', requireRole('admin'), async (req, res) => {
     try {
+      const adminCount = await storage.getAdminCount();
       const success = await storage.deleteDatabase();
       if (success) {
-        res.json({ message: 'Database cleared successfully' });
+        res.json({ 
+          message: 'Database cleared successfully (admin accounts preserved)',
+          adminAccountsPreserved: adminCount
+        });
       } else {
         res.status(500).json({ message: 'Failed to clear database' });
       }
     } catch (error) {
       console.error('Database deletion error:', error);
       res.status(500).json({ message: 'Failed to clear database' });
+    }
+  });
+
+  // Admin protection status endpoint
+  app.get('/api/admin/protection-status', requireRole('admin'), async (req, res) => {
+    try {
+      const adminCount = await storage.getAdminCount();
+      res.json({
+        adminCount,
+        protectionEnabled: true,
+        features: [
+          'Admin users cannot be deleted individually',
+          'Admin accounts are preserved during database resets',
+          'Admin accounts are preserved during database imports'
+        ]
+      });
+    } catch (error) {
+      console.error('Admin protection status error:', error);
+      res.status(500).json({ message: 'Failed to get protection status' });
     }
   });
 
