@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { X, Calendar, Upload } from "lucide-react";
+import { X, Calendar } from "lucide-react";
 import type { Lead, InsertLead, Product } from "@shared/schema";
 
 interface LeadFormProps {
@@ -38,8 +38,6 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
   });
   
   const [selectedProducts, setSelectedProducts] = useState<number[]>([]);
-  const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
-  const [fileDescription, setFileDescription] = useState("");
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -88,21 +86,6 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
       );
       
       const leadId = result?.id || lead?.id;
-      
-      // Then upload files if any are selected and we have a lead ID
-      if (selectedFiles && selectedFiles.length > 0 && leadId) {
-        for (const file of Array.from(selectedFiles)) {
-          const fileFormData = new FormData();
-          fileFormData.append('file', file);
-          fileFormData.append('description', fileDescription || file.name);
-          
-          // Use the existing lead attachments endpoint
-          await fetch(`/api/leads/${leadId}/attachments`, {
-            method: 'POST',
-            body: fileFormData,
-          });
-        }
-      }
       
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       toast({
@@ -353,69 +336,6 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
               placeholder="Additional notes about the lead..."
               data-testid="textarea-notes"
             />
-          </div>
-
-          {/* Attach Files Section */}
-          <div className="space-y-3">
-            <div className="flex items-center space-x-2">
-              <Upload className="w-4 h-4 text-slate-400" />
-              <Label className="text-slate-300 text-sm font-medium">Attach Files (Optional)</Label>
-            </div>
-            <div className="flex space-x-3">
-              <Input
-                value={fileDescription}
-                onChange={(e) => setFileDescription(e.target.value)}
-                placeholder="Optional description for the files..."
-                className="bg-slate-700 border-slate-600 text-slate-100 placeholder:text-slate-400 flex-1"
-              />
-              <div className="relative">
-                <input
-                  type="file"
-                  id="file-upload"
-                  multiple
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  onChange={(e) => setSelectedFiles(e.target.files)}
-                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif,.xls,.xlsx,.csv"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="bg-green-600 hover:bg-green-700 text-white border-green-600 px-6"
-                  data-testid="button-choose-files"
-                >
-                  Choose Files
-                </Button>
-              </div>
-            </div>
-            {selectedFiles && selectedFiles.length > 0 && (
-              <div className="mt-3 p-3 bg-slate-600/30 rounded border border-slate-600">
-                <p className="text-slate-300 text-sm font-medium mb-2">
-                  {selectedFiles.length} file{selectedFiles.length > 1 ? 's' : ''} selected:
-                </p>
-                <ul className="space-y-1">
-                  {Array.from(selectedFiles).map((file, index) => (
-                    <li key={index} className="text-slate-400 text-sm flex items-center justify-between">
-                      <span>{file.name} ({(file.size / 1024 / 1024).toFixed(2)} MB)</span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const dt = new DataTransfer();
-                          Array.from(selectedFiles).forEach((f, i) => {
-                            if (i !== index) dt.items.add(f);
-                          });
-                          setSelectedFiles(dt.files.length > 0 ? dt.files : null);
-                        }}
-                        className="text-slate-400 hover:text-red-400 h-6 px-2"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
 
           {/* Submit Button */}
