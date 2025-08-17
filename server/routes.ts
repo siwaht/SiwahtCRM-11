@@ -252,6 +252,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(priority && { priority: priority as string }),
       };
       
+      // Role-based filtering: agents can only see leads they created
+      if (req.user!.role === 'agent') {
+        filters.assignedTo = req.user!.id;
+      }
+      // Admin and engineer can see all leads (existing behavior)
+      
       const leads = await storage.getAllLeads(filters);
       res.json(leads);
     } catch (error) {
@@ -322,6 +328,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const originalLead = await storage.getLead(id);
+      if (!originalLead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+
+      // Permission check: Admin can update any lead, others can only update their own leads
+      if (req.user!.role !== 'admin' && req.user!.role !== 'engineer' && originalLead.assignedTo !== req.user!.id) {
+        return res.status(403).json({ message: 'You can only update leads you created' });
+      }
       
       const lead = await storage.updateLead(id, leadDataRaw, productIds);
       if (!lead) {
@@ -570,6 +584,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/leads/:id/interactions', requireAuth, async (req, res) => {
     try {
       const leadId = parseInt(req.params.id);
+
+      // Permission check: agents can only access interactions for leads they created
+      if (req.user!.role === 'agent') {
+        const lead = await storage.getLead(leadId);
+        if (!lead || lead.assignedTo !== req.user!.id) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
+      }
+
       const interactions = await storage.getInteractionsByLead(leadId);
       res.json(interactions);
     } catch (error) {
@@ -587,6 +610,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       if (!req.session.userId) {
         return res.status(401).json({ message: 'User not authenticated' });
+      }
+
+      // Permission check: agents can only create interactions for leads they created
+      if (req.user!.role === 'agent') {
+        const lead = await storage.getLead(leadId);
+        if (!lead || lead.assignedTo !== req.user!.id) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
       }
       
       const interactionData = insertInteractionSchema.parse({
@@ -644,6 +675,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const interactionId = parseInt(req.params.id);
       const updateData = insertInteractionSchema.partial().parse(req.body);
       
+      // Get the interaction first to check permissions
+      const existingInteraction = await storage.getInteraction(interactionId);
+      if (!existingInteraction) {
+        return res.status(404).json({ message: 'Interaction not found' });
+      }
+
+      // Permission check: agents can only update interactions for leads they created
+      if (req.user!.role === 'agent') {
+        const lead = await storage.getLead(existingInteraction.leadId);
+        if (!lead || lead.assignedTo !== req.user!.id) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
+      }
+      
       const interaction = await storage.updateInteraction(interactionId, updateData);
       
       if (!interaction) {
@@ -698,10 +743,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const interactionId = parseInt(req.params.id);
       
-      // Get the interaction before deleting for webhook
+      // Get the interaction before deleting for webhook and permission check
       const interaction = await storage.getInteraction(interactionId);
       if (!interaction) {
         return res.status(404).json({ message: 'Interaction not found' });
+      }
+
+      // Permission check: agents can only delete interactions for leads they created
+      if (req.user!.role === 'agent') {
+        const lead = await storage.getLead(interaction.leadId);
+        if (!lead || lead.assignedTo !== req.user!.id) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
       }
       
       // Get lead and agent information for enhanced webhook payload
@@ -746,6 +799,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/leads/:id/attachments', requireAuth, upload.single('file'), async (req, res) => {
     try {
       const leadId = parseInt(req.params.id);
+
+      // Permission check: agents can only add attachments to leads they created
+      if (req.user!.role === 'agent') {
+        const lead = await storage.getLead(leadId);
+        if (!lead || lead.assignedTo !== req.user!.id) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
+      }
       
       if (!req.file) {
         return res.status(400).json({ message: 'No file uploaded' });
@@ -768,6 +829,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/leads/:id/attachments', requireAuth, async (req, res) => {
     try {
       const leadId = parseInt(req.params.id);
+
+      // Permission check: agents can only access attachments for leads they created
+      if (req.user!.role === 'agent') {
+        const lead = await storage.getLead(leadId);
+        if (!lead || lead.assignedTo !== req.user!.id) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
+      }
+
       const attachments = await storage.getAttachmentsByLead(leadId);
       res.json(attachments);
     } catch (error) {
@@ -979,6 +1049,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...(source && { source: source as string }),
         ...(priority && { priority: priority as string }),
       };
+      
+      // Role-based filtering: agents can only export leads they created
+      if (req.user!.role === 'agent') {
+        filters.assignedTo = req.user!.id;
+      }
       
       const leads = await storage.getAllLeads(filters);
       
