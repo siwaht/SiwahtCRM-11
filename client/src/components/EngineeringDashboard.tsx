@@ -424,14 +424,31 @@ export default function EngineeringDashboard() {
                         <span className="text-sm text-slate-300">Update:</span>
                         <span className="text-sm text-blue-400">{progressUpdate}%</span>
                       </div>
-                      <Slider
-                        value={[progressUpdate]}
-                        onValueChange={(value) => setProgressUpdate(value[0])}
-                        max={100}
-                        step={5}
-                        className="w-full"
-                        data-testid="slider-progress"
-                      />
+                      <div className="relative">
+                        <div className="w-full h-6 bg-slate-600 rounded-full relative">
+                          <div 
+                            className="h-full bg-blue-500 rounded-full transition-all duration-200"
+                            style={{ width: `${progressUpdate}%` }}
+                          ></div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            step="5"
+                            value={progressUpdate}
+                            onChange={(e) => setProgressUpdate(parseInt(e.target.value))}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            data-testid="slider-progress"
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-slate-500 mt-1">
+                          <span>0%</span>
+                          <span>25%</span>
+                          <span>50%</span>
+                          <span>75%</span>
+                          <span>100%</span>
+                        </div>
+                      </div>
                       <Button
                         onClick={() => handleProgressUpdate(progressUpdate)}
                         className="mt-3 bg-blue-600 hover:bg-blue-700"
