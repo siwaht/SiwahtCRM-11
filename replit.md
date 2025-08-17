@@ -51,8 +51,8 @@ Security is implemented through multiple layers:
 ### External Integrations
 The system is designed for extensibility with external services:
 - **Enhanced Webhook System**: Configurable webhooks for lead and interaction events with HMAC signature verification
-  - Interaction webhooks now include complete lead information (name, email, company, status, value)
-  - Interaction webhooks now include complete agent information (name, email, role)
+  - Lead creation webhooks include comprehensive lead details: name, email, phone, dealValue, status, priority, interestedProductNames, followUpDate, notes, and creator information (agent name, email, role)
+  - Interaction webhooks include complete lead information (name, email, company, status, value) and agent information (name, email, role)
   - Supports events: lead.created, lead.updated, lead.deleted, interaction.created, interaction.updated, interaction.deleted
 - **MCP Protocol**: WebSocket-based AI agent integration for automated lead processing
 - **File Storage**: Local file system with plans for cloud storage integration

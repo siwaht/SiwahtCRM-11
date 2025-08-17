@@ -266,9 +266,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Create lead with productIds
       const lead = await storage.createLead(leadData, productIds);
+      // Get creator information and lead products for comprehensive webhook payload
+      const creator = req.session.userId ? await storage.getUser(req.session.userId) : null;
+      const leadWithProducts = await storage.getLeadWithProducts(lead.id);
+      
+      // Create enhanced payload with comprehensive lead details and creator information
+      const webhookPayload = {
+        ...lead,
+        interestedProductNames: leadWithProducts?.products?.map(p => p.name) || [],
+        dealValue: lead.value, // Alias for value field
+        agent: creator ? {
+          id: creator.id,
+          name: creator.name,
+          email: creator.email,
+          role: creator.role
+        } : null
+      };
       
       // Trigger webhooks
-      await triggerWebhooks('lead.created', lead);
+      await triggerWebhooks('lead.created', webhookPayload);
       
       res.status(201).json(lead);
     } catch (error) {
