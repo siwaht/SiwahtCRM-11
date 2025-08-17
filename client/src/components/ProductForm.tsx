@@ -71,10 +71,15 @@ export default function ProductForm({ product, onClose }: ProductFormProps) {
 
   const handleTagsChange = (value: string) => {
     // Store the raw input value to allow proper editing
+    const processedTags = value
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+    
     setFormData(prev => ({ 
       ...prev, 
       tagsInput: value,
-      tags: value.split(',').map(tag => tag.trim()).filter(Boolean)
+      tags: processedTags
     }));
   };
 
