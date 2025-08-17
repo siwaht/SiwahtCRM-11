@@ -58,7 +58,13 @@ The system is designed for extensibility with external services:
 - **Enhanced Webhook System**: Configurable webhooks for lead and interaction events with HMAC signature verification
   - Lead creation webhooks include comprehensive lead details: name, email, phone, dealValue, status, priority, interestedProductNames, followUpDate, notes, and creator information (agent name, email, role)
   - Interaction webhooks include complete lead information (name, email, company, status, value) and agent information (name, email, role)
-  - Supports events: lead.created, lead.updated, lead.deleted, interaction.created, interaction.updated, interaction.deleted
+  - Supports events: lead.created, lead.updated, lead.deleted, lead.assigned, interaction.created, interaction.updated, interaction.deleted
+- **Admin Lead Assignment**: Admin-controlled lead assignment capabilities
+  - Individual agent assignment via PUT /api/leads/:id/assign-agent
+  - Individual engineer assignment via PUT /api/leads/:id/assign-engineer
+  - Bulk assignment support for multiple leads simultaneously
+  - Assignment options endpoint providing available agents and engineers
+  - Webhook notifications for all assignment events
 - **MCP Protocol**: WebSocket-based AI agent integration for automated lead processing
 - **File Storage**: Local file system with plans for cloud storage integration
 - **Database**: PostgreSQL via Neon serverless with connection pooling

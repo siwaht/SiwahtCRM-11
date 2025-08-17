@@ -363,6 +363,201 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lead Assignment (Admin only)
+  app.put('/api/leads/:id/assign-agent', requireRole('admin'), async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const { agentId } = req.body;
+      
+      // Validate agent exists and has correct role
+      if (agentId) {
+        const agent = await storage.getUser(agentId);
+        if (!agent) {
+          return res.status(404).json({ message: 'Agent not found' });
+        }
+        if (agent.role !== 'agent') {
+          return res.status(400).json({ message: 'User is not an agent' });
+        }
+      }
+      
+      const lead = await storage.updateLead(leadId, { assignedTo: agentId || null }, undefined, true);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+      
+      // Get assigned agent info for response
+      const assignedAgent = agentId ? await storage.getUser(agentId) : null;
+      
+      // Trigger webhooks
+      await triggerWebhooks('lead.assigned', {
+        ...lead,
+        assignedAgent: assignedAgent ? {
+          id: assignedAgent.id,
+          name: assignedAgent.name,
+          email: assignedAgent.email
+        } : null
+      });
+      
+      res.json({
+        message: agentId ? 'Lead assigned to agent successfully' : 'Lead unassigned from agent',
+        lead,
+        assignedAgent: assignedAgent ? {
+          id: assignedAgent.id,
+          name: assignedAgent.name,
+          email: assignedAgent.email
+        } : null
+      });
+    } catch (error) {
+      console.error('Assign agent error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.put('/api/leads/:id/assign-engineer', requireRole('admin'), async (req, res) => {
+    try {
+      const leadId = parseInt(req.params.id);
+      const { engineerId } = req.body;
+      
+      // Validate engineer exists and has correct role
+      if (engineerId) {
+        const engineer = await storage.getUser(engineerId);
+        if (!engineer) {
+          return res.status(404).json({ message: 'Engineer not found' });
+        }
+        if (engineer.role !== 'engineer') {
+          return res.status(400).json({ message: 'User is not an engineer' });
+        }
+      }
+      
+      const lead = await storage.updateLead(leadId, { assignedEngineer: engineerId || null }, undefined, true);
+      if (!lead) {
+        return res.status(404).json({ message: 'Lead not found' });
+      }
+      
+      // Get assigned engineer info for response
+      const assignedEngineer = engineerId ? await storage.getUser(engineerId) : null;
+      
+      // Trigger webhooks
+      await triggerWebhooks('lead.assigned', {
+        ...lead,
+        assignedEngineer: assignedEngineer ? {
+          id: assignedEngineer.id,
+          name: assignedEngineer.name,
+          email: assignedEngineer.email
+        } : null
+      });
+      
+      res.json({
+        message: engineerId ? 'Lead assigned to engineer successfully' : 'Lead unassigned from engineer',
+        lead,
+        assignedEngineer: assignedEngineer ? {
+          id: assignedEngineer.id,
+          name: assignedEngineer.name,
+          email: assignedEngineer.email
+        } : null
+      });
+    } catch (error) {
+      console.error('Assign engineer error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Bulk lead assignment (Admin only)
+  app.put('/api/leads/bulk-assign', requireRole('admin'), async (req, res) => {
+    try {
+      const { leadIds, agentId, engineerId } = req.body;
+      
+      if (!leadIds || !Array.isArray(leadIds) || leadIds.length === 0) {
+        return res.status(400).json({ message: 'Lead IDs array is required' });
+      }
+      
+      if (!agentId && !engineerId) {
+        return res.status(400).json({ message: 'Either agentId or engineerId must be provided' });
+      }
+      
+      // Validate users exist and have correct roles
+      let agent = null;
+      let engineer = null;
+      
+      if (agentId) {
+        agent = await storage.getUser(agentId);
+        if (!agent || agent.role !== 'agent') {
+          return res.status(400).json({ message: 'Invalid agent ID' });
+        }
+      }
+      
+      if (engineerId) {
+        engineer = await storage.getUser(engineerId);
+        if (!engineer || engineer.role !== 'engineer') {
+          return res.status(400).json({ message: 'Invalid engineer ID' });
+        }
+      }
+      
+      const results = [];
+      const updateData: any = {};
+      if (agentId !== undefined) updateData.assignedTo = agentId;
+      if (engineerId !== undefined) updateData.assignedEngineer = engineerId;
+      
+      for (const leadId of leadIds) {
+        try {
+          const parsedLeadId = parseInt(String(leadId));
+          if (isNaN(parsedLeadId)) {
+            results.push({ leadId, success: false, error: 'Invalid lead ID' });
+            continue;
+          }
+          
+          const lead = await storage.updateLead(parsedLeadId, updateData, undefined, true);
+          if (lead) {
+            results.push({ leadId: parsedLeadId, success: true, lead });
+            
+            // Trigger webhook for each assignment
+            await triggerWebhooks('lead.assigned', {
+              ...lead,
+              ...(agent && { assignedAgent: { id: agent.id, name: agent.name, email: agent.email } }),
+              ...(engineer && { assignedEngineer: { id: engineer.id, name: engineer.name, email: engineer.email } })
+            });
+          } else {
+            results.push({ leadId: parsedLeadId, success: false, error: 'Lead not found' });
+          }
+        } catch (error) {
+          console.error('Bulk assignment error for lead', leadId, ':', error);
+          results.push({ leadId, success: false, error: 'Update failed' });
+        }
+      }
+      
+      const successCount = results.filter(r => r.success).length;
+      
+      res.json({
+        message: `Successfully assigned ${successCount} of ${leadIds.length} leads`,
+        results,
+        assignedAgent: agent ? { id: agent.id, name: agent.name, email: agent.email } : null,
+        assignedEngineer: engineer ? { id: engineer.id, name: engineer.name, email: engineer.email } : null
+      });
+    } catch (error) {
+      console.error('Bulk assign error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Get available agents and engineers for assignment (Admin only)
+  app.get('/api/assignment-options', requireRole('admin'), async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const agents = users.filter(user => user.role === 'agent' && user.isActive)
+        .map(({ password, ...user }) => user);
+      const engineers = users.filter(user => user.role === 'engineer' && user.isActive)
+        .map(({ password, ...user }) => user);
+      
+      res.json({
+        agents,
+        engineers
+      });
+    } catch (error) {
+      console.error('Get assignment options error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Interactions
   app.get('/api/leads/:id/interactions', requireAuth, async (req, res) => {
     try {

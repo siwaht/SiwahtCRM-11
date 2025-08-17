@@ -354,13 +354,13 @@ export class DatabaseStorage implements IStorage {
     return lead;
   }
 
-  async updateLead(id: number, updateData: Partial<InsertLead>, productIds?: number[]): Promise<Lead | undefined> {
+  async updateLead(id: number, updateData: Partial<InsertLead>, productIds?: number[], skipAutoAssignment?: boolean): Promise<Lead | undefined> {
     // Get current lead data to check if engineer assignment is needed
     const currentLead = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
     if (!currentLead.length) return undefined;
     
     // Auto-assign engineer if not already assigned and not being explicitly set
-    if (!currentLead[0].assignedEngineer && !updateData.assignedEngineer) {
+    if (!skipAutoAssignment && !currentLead[0].assignedEngineer && !updateData.assignedEngineer) {
       console.log('Auto-assigning engineer during update...');
       const engineers = await this.getAvailableEngineers();
       console.log('Available engineers:', engineers);
