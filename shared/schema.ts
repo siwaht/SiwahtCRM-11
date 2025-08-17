@@ -183,6 +183,8 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  username: z.string().optional(), // Make username optional but ensure it can be set
 });
 
 export const insertProductSchema = createInsertSchema(products).omit({

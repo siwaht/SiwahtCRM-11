@@ -74,7 +74,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userData = insertUserSchema.parse(req.body);
       const hashedPassword = await hashPassword(userData.password);
-      const user = await storage.createUser({ ...userData, password: hashedPassword });
+      
+      // Ensure username is set - default to email if not provided
+      const username = userData.username || userData.email;
+      
+      const user = await storage.createUser({ 
+        ...userData, 
+        username,
+        password: hashedPassword 
+      });
       const { password: _, ...userWithoutPassword } = user;
       
       // Trigger webhooks
