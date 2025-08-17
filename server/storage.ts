@@ -5,7 +5,7 @@ import {
   leads, 
   interactions, 
   webhooks, 
-  leadLinks, 
+  leadAttachments, 
   leadProducts,
   mcpServers,
   type User, 
@@ -18,8 +18,8 @@ import {
   type InsertInteraction,
   type Webhook, 
   type InsertWebhook,
-  type LeadLink, 
-  type InsertLeadLink,
+  type LeadAttachment, 
+  type InsertLeadAttachment,
   type LeadProduct,
   type InsertLeadProduct,
   type McpServer, 
@@ -35,7 +35,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   updateUserStorage(userId: number, storageUsed: number): Promise<void>;
-  addLeadLink(link: InsertLeadLink): Promise<LeadLink>;
+  addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number; description?: string | null }): Promise<void>;
   getAllUsers(): Promise<User[]>;
   getAvailableEngineers(): Promise<User[]>;
   deleteUser(id: number): Promise<boolean>;
@@ -80,11 +80,11 @@ export interface IStorage {
   deleteWebhook(id: number): Promise<boolean>;
   getActiveWebhooks(): Promise<Webhook[]>;
 
-  // Lead Links
-  getLeadLink(id: number): Promise<LeadLink | undefined>;
-  getLinksByLead(leadId: number): Promise<LeadLink[]>;
-  createLeadLink(link: InsertLeadLink): Promise<LeadLink>;
-  deleteLeadLink(id: number): Promise<boolean>;
+  // Lead Attachments
+  getLeadAttachment(id: number): Promise<LeadAttachment | undefined>;
+  getAttachmentsByLead(leadId: number): Promise<LeadAttachment[]>;
+  createLeadAttachment(attachment: InsertLeadAttachment): Promise<LeadAttachment>;
+  deleteLeadAttachment(id: number): Promise<{ success: boolean; fileSize?: number; uploadedById?: number }>;
 
   // MCP Servers
   getMcpServer(id: number): Promise<McpServer | undefined>;
@@ -202,8 +202,20 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async addLeadLink(link: InsertLeadLink): Promise<LeadLink> {
-    return this.createLeadLink(link);
+  async addLeadAttachment(attachment: { leadId: number; fileName: string; filePath: string; uploadedById: number; fileSize: number; description?: string | null }): Promise<void> {
+    try {
+      await db.insert(leadAttachments).values({
+        leadId: attachment.leadId,
+        fileName: attachment.fileName,
+        filePath: attachment.filePath,
+        fileSize: attachment.fileSize,
+        uploadedById: attachment.uploadedById,
+        description: attachment.description
+      });
+    } catch (error) {
+      console.error('Add lead attachment error:', error);
+      throw error;
+    }
   }
 
   // Products
@@ -465,24 +477,37 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(webhooks).where(eq(webhooks.isActive, true));
   }
 
-  // Lead Links
-  async getLeadLink(id: number): Promise<LeadLink | undefined> {
-    const [link] = await db.select().from(leadLinks).where(eq(leadLinks.id, id));
-    return link || undefined;
+  // Lead Attachments
+  async getLeadAttachment(id: number): Promise<LeadAttachment | undefined> {
+    const [attachment] = await db.select().from(leadAttachments).where(eq(leadAttachments.id, id));
+    return attachment || undefined;
   }
 
-  async getLinksByLead(leadId: number): Promise<LeadLink[]> {
-    return await db.select().from(leadLinks).where(eq(leadLinks.leadId, leadId)).orderBy(desc(leadLinks.createdAt));
+  async getAttachmentsByLead(leadId: number): Promise<LeadAttachment[]> {
+    return await db.select().from(leadAttachments).where(eq(leadAttachments.leadId, leadId)).orderBy(desc(leadAttachments.createdAt));
   }
 
-  async createLeadLink(insertLink: InsertLeadLink): Promise<LeadLink> {
-    const [link] = await db.insert(leadLinks).values(insertLink).returning();
-    return link;
+  async createLeadAttachment(insertAttachment: InsertLeadAttachment): Promise<LeadAttachment> {
+    const [attachment] = await db.insert(leadAttachments).values(insertAttachment).returning();
+    return attachment;
   }
 
-  async deleteLeadLink(id: number): Promise<boolean> {
-    const result = await db.delete(leadLinks).where(eq(leadLinks.id, id));
-    return (result.rowCount || 0) > 0;
+  async deleteLeadAttachment(id: number): Promise<{ success: boolean; fileSize?: number; uploadedById?: number }> {
+    // Get attachment info before deleting
+    const [attachment] = await db.select().from(leadAttachments).where(eq(leadAttachments.id, id));
+    if (!attachment) {
+      return { success: false };
+    }
+    
+    // Delete the attachment
+    const result = await db.delete(leadAttachments).where(eq(leadAttachments.id, id));
+    const success = (result.rowCount || 0) > 0;
+    
+    return {
+      success,
+      fileSize: success ? (attachment.fileSize || 0) : undefined,
+      uploadedById: success ? (attachment.uploadedById || 0) : undefined
+    };
   }
 
   // MCP Servers

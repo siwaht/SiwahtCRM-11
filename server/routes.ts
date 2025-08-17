@@ -734,55 +734,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Lead Links
-  app.post('/api/leads/:id/links', requireAuth, async (req, res) => {
+  // Lead Attachments
+  app.post('/api/leads/:id/attachments', requireAuth, upload.single('file'), async (req, res) => {
     try {
       const leadId = parseInt(req.params.id);
-      const { url, title, description, platform } = req.body;
       
-      if (!url || !title || !platform) {
-        return res.status(400).json({ message: 'URL, title, and platform are required' });
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
       }
 
-      const link = await storage.createLeadLink({
+      const attachment = await storage.createLeadAttachment({
         leadId,
-        url,
-        title,
-        description,
-        platform,
-        addedById: req.user!.id
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        uploadedById: req.user!.id
       });
 
-      res.status(201).json(link);
+      res.status(201).json(attachment);
     } catch (error) {
-      console.error('Create link error:', error);
+      console.error('Upload attachment error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
 
-  app.get('/api/leads/:id/links', requireAuth, async (req, res) => {
+  app.get('/api/leads/:id/attachments', requireAuth, async (req, res) => {
     try {
       const leadId = parseInt(req.params.id);
-      const links = await storage.getLinksByLead(leadId);
-      res.json(links);
+      const attachments = await storage.getAttachmentsByLead(leadId);
+      res.json(attachments);
     } catch (error) {
-      console.error('Get links error:', error);
+      console.error('Get attachments error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
 
-  app.delete('/api/lead-links/:id', requireAuth, async (req, res) => {
+  app.delete('/api/lead-attachments/:id', requireAuth, async (req, res) => {
     try {
-      const linkId = parseInt(req.params.id);
-      const success = await storage.deleteLeadLink(linkId);
+      const attachmentId = parseInt(req.params.id);
+      const result = await storage.deleteLeadAttachment(attachmentId);
       
-      if (success) {
+      if (result.success && result.fileSize && result.uploadedById) {
+        // Update user's storage usage
+        const user = await storage.getUser(result.uploadedById);
+        if (user) {
+          const newStorageUsed = Math.max(0, (user.storageUsed || 0) - result.fileSize);
+          await storage.updateUserStorage(result.uploadedById, newStorageUsed);
+        }
+        res.json({ success: true });
+      } else if (result.success) {
         res.json({ success: true });
       } else {
-        res.status(404).json({ message: 'Link not found' });
+        res.status(404).json({ message: 'Attachment not found' });
       }
     } catch (error) {
-      console.error('Delete link error:', error);
+      console.error('Delete attachment error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });

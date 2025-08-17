@@ -437,8 +437,13 @@ export default function LeadsTable() {
                         AI Avatar
                       </Badge>
                     )}
-                    {lead.status !== 'won' && (
-                      <span className="text-sm text-slate-500">In Progress</span>
+                    {lead.status !== 'won' && lead.assignedProduct && (
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-sm px-2 py-1">
+                        Podcast
+                      </Badge>
+                    )}
+                    {!lead.assignedProduct && (
+                      <span className="text-sm text-slate-500">No Product</span>
                     )}
                   </div>
                 </div>
@@ -530,8 +535,13 @@ export default function LeadsTable() {
                         AI Avatar
                       </Badge>
                     )}
-                    {lead.status !== 'won' && (
-                      <span className="text-xs text-slate-500">In Progress</span>
+                    {lead.status !== 'won' && lead.assignedProduct && (
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs px-1 py-0.5">
+                        Podcast
+                      </Badge>
+                    )}
+                    {!lead.assignedProduct && (
+                      <span className="text-xs text-slate-500">None</span>
                     )}
                   </div>
                 </div>

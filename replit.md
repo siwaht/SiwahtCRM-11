@@ -65,13 +65,8 @@ The system is designed for extensibility with external services:
   - Bulk assignment support for multiple leads simultaneously
   - Assignment options endpoint providing available agents and engineers
   - Webhook notifications for all assignment events
-- **External Links Management**: Complete replacement of file attachment system with external link management
-  - Support for multiple platforms: Dropbox, Google Drive, YouTube, Instagram, TikTok, Facebook, LinkedIn, Twitter, and other websites
-  - Platform-specific URL validation and icons for better user experience
-  - Lead link tracking with title, description, platform categorization, and user attribution
-  - Full CRUD operations: create, read, update, delete links per lead
-  - LeadLinkManager component provides intuitive interface for link management
 - **MCP Protocol**: WebSocket-based AI agent integration for automated lead processing
+- **File Storage**: Local file system with plans for cloud storage integration
 - **Database**: PostgreSQL via Neon serverless with connection pooling
 
 ## External Dependencies

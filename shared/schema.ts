@@ -96,17 +96,15 @@ export const webhooks = pgTable('webhooks', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
-// External Links for Leads (replaces file attachments)
-export const leadLinks = pgTable('lead_links', {
+// File Attachments for Leads
+export const leadAttachments = pgTable('lead_attachments', {
   id: serial('id').primaryKey(),
   leadId: integer('lead_id').references(() => leads.id, { onDelete: 'cascade' }).notNull(),
-  url: text('url').notNull(),
-  title: text('title').notNull(),
-  description: text('description'), // Optional description/comment for the link
-  platform: text('platform', { 
-    enum: ['dropbox', 'googledrive', 'youtube', 'instagram', 'tiktok', 'facebook', 'linkedin', 'twitter', 'website', 'other'] 
-  }).notNull(),
-  addedById: integer('added_by_id').references(() => users.id),
+  fileName: text('file_name').notNull(),
+  filePath: text('file_path').notNull(),
+  fileSize: integer('file_size').default(0),
+  description: text('description'), // Optional description/comment for the file
+  uploadedById: integer('uploaded_by_id').references(() => users.id),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
@@ -124,7 +122,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   assignedLeads: many(leads, { relationName: 'assignedAgent' }),
   engineeringLeads: many(leads, { relationName: 'assignedEngineer' }),
   interactions: many(interactions),
-  links: many(leadLinks),
+  attachments: many(leadAttachments),
 }));
 
 export const productsRelations = relations(products, ({ many }) => ({
@@ -144,7 +142,7 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
   }),
   leadProducts: many(leadProducts),
   interactions: many(interactions),
-  links: many(leadLinks),
+  attachments: many(leadAttachments),
 }));
 
 export const leadProductsRelations = relations(leadProducts, ({ one }) => ({
@@ -169,13 +167,13 @@ export const interactionsRelations = relations(interactions, ({ one }) => ({
   }),
 }));
 
-export const leadLinksRelations = relations(leadLinks, ({ one }) => ({
+export const leadAttachmentsRelations = relations(leadAttachments, ({ one }) => ({
   lead: one(leads, {
-    fields: [leadLinks.leadId],
+    fields: [leadAttachments.leadId],
     references: [leads.id],
   }),
-  addedBy: one(users, {
-    fields: [leadLinks.addedById],
+  uploadedBy: one(users, {
+    fields: [leadAttachments.uploadedById],
     references: [users.id],
   }),
 }));
@@ -208,7 +206,7 @@ export const insertWebhookSchema = createInsertSchema(webhooks).omit({
   lastTriggered: true,
 });
 
-export const insertLeadLinkSchema = createInsertSchema(leadLinks).omit({
+export const insertLeadAttachmentSchema = createInsertSchema(leadAttachments).omit({
   id: true,
   createdAt: true,
 });
@@ -234,8 +232,8 @@ export type Interaction = typeof interactions.$inferSelect;
 export type InsertInteraction = z.infer<typeof insertInteractionSchema>;
 export type Webhook = typeof webhooks.$inferSelect;
 export type InsertWebhook = z.infer<typeof insertWebhookSchema>;
-export type LeadLink = typeof leadLinks.$inferSelect;
-export type InsertLeadLink = z.infer<typeof insertLeadLinkSchema>;
+export type LeadAttachment = typeof leadAttachments.$inferSelect;
+export type InsertLeadAttachment = z.infer<typeof insertLeadAttachmentSchema>;
 export type LeadProduct = typeof leadProducts.$inferSelect;
 export type InsertLeadProduct = z.infer<typeof insertLeadProductSchema>;
 export type McpServer = typeof mcpServers.$inferSelect;

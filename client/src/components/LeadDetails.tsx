@@ -4,10 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -19,15 +19,14 @@ import {
   Mail,
   Users,
   AlertTriangle,
+  Paperclip,
   History,
   Search,
-  Package,
-  Link,
   Star,
-  Settings,
-  Save
+  Package,
+  Upload
 } from "lucide-react";
-import type { Lead, Interaction, Product } from "@shared/schema";
+import type { Lead, Interaction, Product, LeadAttachment } from "@shared/schema";
 
 interface LeadDetailsProps {
   lead: Lead;
@@ -39,9 +38,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [quickNote, setQuickNote] = useState("");
-  const [engineeringNotes, setEngineeringNotes] = useState(lead.engineeringNotes || "");
-  const [engineeringProgress, setEngineeringProgress] = useState(lead.engineeringProgress || 0);
-
+  const [selectedQuickAction, setSelectedQuickAction] = useState<string | null>(null);
+  const [fileDescription, setFileDescription] = useState("");
   const [newInteraction, setNewInteraction] = useState({
     type: "note" as const,
     text: ""
@@ -66,6 +64,19 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     queryKey: ["/api/products"],
   });
 
+  const { data: attachments = [], isLoading: attachmentsLoading } = useQuery<LeadAttachment[]>({
+    queryKey: [`/api/leads/${lead.id}/attachments`],
+    retry: 2,
+    refetchOnWindowFocus: false,
+    onError: (error) => {
+      console.error('Attachments query error:', error);
+    }
+  });
+
+  const { data: storageInfo } = useQuery<{storageUsed: number; storageLimit: number; storageAvailable: number}>({
+    queryKey: ["/api/user/storage"],
+  });
+
   const addInteractionMutation = useMutation({
     mutationFn: async (data: typeof newInteraction) => {
       return await apiRequest("POST", `/api/leads/${lead.id}/interactions`, data);
@@ -79,14 +90,56 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
         description: "Interaction added successfully",
       });
     },
-    onError: (error) => {
+    onError: async (error) => {
       console.error('Add interaction error:', error);
+      let errorMessage = "Failed to add interaction";
+      
+      try {
+        // Try to get more specific error message from response
+        if (error instanceof Error && error.message.includes('fetch')) {
+          const response = await fetch(`/api/leads/${lead.id}/interactions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(newInteraction)
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          }
+        }
+      } catch (e) {
+        console.error('Error getting specific error message:', e);
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to add interaction",
         variant: "destructive",
+        title: "Error",
+        description: errorMessage,
       });
     },
+  });
+
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async (attachmentId: number) => {
+      return await apiRequest("DELETE", `/api/lead-attachments/${attachmentId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+      toast({
+        title: "Success",
+        description: "Attachment deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete attachment",
+      });
+    }
   });
 
   const quickNoteMutation = useMutation({
@@ -100,66 +153,155 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
         title: "Success",
         description: "Note added successfully",
       });
-    },
-    onError: (error) => {
-      console.error('Quick note error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add note",
-        variant: "destructive",
-      });
-    },
+    }
   });
 
-  const saveEngineeringNotesMutation = useMutation({
-    mutationFn: async (data: { engineeringNotes: string; engineeringProgress: number }) => {
-      return await apiRequest("PUT", `/api/leads/${lead.id}`, data);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      toast({
-        title: "Success",
-        description: "Engineering notes saved successfully",
-      });
-    },
-    onError: (error) => {
-      console.error('Save engineering notes error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to save engineering notes",
-        variant: "destructive",
-      });
-    },
-  });
+  const getStatusColor = (status: string) => {
+    const colors = {
+      new: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+      contacted: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+      qualified: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+      proposal: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+      negotiation: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+      won: "bg-green-500/20 text-green-400 border-green-500/30",
+      lost: "bg-red-500/20 text-red-400 border-red-500/30",
+    };
+    return colors[status as keyof typeof colors] || colors.new;
+  };
 
-  const assignedAgent = users.find(u => u.id === lead.assignedTo);
-  const assignedEngineer = users.find(u => u.id === lead.assignedEngineer);
+  const getPriorityColor = (priority: string) => {
+    const colors = {
+      low: "bg-slate-500/20 text-slate-400 border-slate-500/30",
+      medium: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
+      high: "bg-red-500/20 text-red-400 border-red-500/30",
+    };
+    return colors[priority as keyof typeof colors] || colors.medium;
+  };
 
-  const handleQuickNote = () => {
-    if (!quickNote.trim()) return;
-    quickNoteMutation.mutate({
-      type: "note",
-      text: quickNote.trim()
-    });
+  const getInteractionIcon = (type: string) => {
+    switch (type) {
+      case "call": return <Phone className="h-4 w-4" />;
+      case "email": return <Mail className="h-4 w-4" />;
+      case "meeting": return <Calendar className="h-4 w-4" />;
+      case "urgent": return <AlertTriangle className="h-4 w-4" />;
+      case "team": return <Users className="h-4 w-4" />;
+      default: return <MessageSquare className="h-4 w-4" />;
+    }
+  };
+
+  const getInteractionColor = (type: string) => {
+    switch (type) {
+      case "call": return "border-l-blue-500 bg-blue-500/5";
+      case "email": return "border-l-green-500 bg-green-500/5";
+      case "meeting": return "border-l-purple-500 bg-purple-500/5";
+      case "urgent": return "border-l-red-500 bg-red-500/5";
+      case "team": return "border-l-orange-500 bg-orange-500/5";
+      default: return "border-l-slate-500 bg-slate-500/5";
+    }
+  };
+
+  const getInteractionIconBg = (type: string) => {
+    switch (type) {
+      case "call": return "bg-blue-500";
+      case "email": return "bg-green-500";
+      case "meeting": return "bg-purple-500";
+      case "urgent": return "bg-red-500";
+      case "team": return "bg-orange-500";
+      default: return "bg-slate-500";
+    }
+  };
+
+  const getAssigneeName = (assignedTo: number | null) => {
+    if (!assignedTo) return "Unassigned";
+    const user = users.find((u: any) => u.id === assignedTo);
+    return user ? user.name : "Unknown";
+  };
+
+  const getEngineerName = (assignedEngineer: number | null) => {
+    if (!assignedEngineer) return "Unassigned";
+    const user = users.find((u: any) => u.id === assignedEngineer);
+    return user ? user.name : "Unknown";
+  };
+
+  const getInteractionUserName = (userId: number | null) => {
+    if (!userId) return "Unknown";
+    
+    // Debug logging to see what data we have
+    console.log('Getting interaction user name for userId:', userId);
+    console.log('Current user data:', currentUser);
+    
+    // Check if it's the current user first
+    const currentUserId = currentUser?.user?.id || currentUser?.id;
+    console.log('Current user ID:', currentUserId, 'Interaction user ID:', userId);
+    
+    if (currentUser && Number(currentUserId) === Number(userId)) {
+      // Handle different user data structures
+      if (currentUser.user) {
+        // If currentUser has a nested user object (API response: {user: {...}})
+        const user = currentUser.user;
+        const firstName = (user.firstName || '').trim();
+        const lastName = (user.lastName || '').trim();
+        const name = user.name || `${firstName} ${lastName}`.trim();
+        console.log('Found current user (nested):', name);
+        return name || 'You';
+      } else {
+        // Direct currentUser object
+        const firstName = (currentUser.firstName || '').trim();
+        const lastName = (currentUser.lastName || '').trim();
+        const name = currentUser.name || `${firstName} ${lastName}`.trim();
+        console.log('Found current user (direct):', name);
+        return name || 'You';
+      }
+    }
+    
+    // Try to find in users list
+    const user = users.find((u: any) => Number(u.id) === Number(userId));
+    if (user) {
+      const firstName = (user.firstName || '').trim();
+      const lastName = (user.lastName || '').trim();
+      const name = user.name || `${firstName} ${lastName}`.trim();
+      console.log('Found user in list:', name);
+      return name || 'Unknown User';
+    }
+    
+    // If we can't find the user but we have a userId, show a more helpful message
+    console.log('User not found, showing fallback for userId:', userId);
+    return userId ? `User #${userId}` : "Team Member";
   };
 
   const handleAddInteraction = () => {
     if (!newInteraction.text.trim()) {
       toast({
-        title: "Error",
-        description: "Please enter interaction details",
         variant: "destructive",
+        title: "Error",
+        description: "Text is required",
       });
       return;
     }
     addInteractionMutation.mutate(newInteraction);
   };
 
-  const handleSaveEngineeringNotes = () => {
-    saveEngineeringNotesMutation.mutate({
-      engineeringNotes,
-      engineeringProgress
+  const handleQuickAction = (type: string) => {
+    // Only set the selected action, don't create interaction yet
+    setSelectedQuickAction(selectedQuickAction === type ? null : type);
+  };
+
+  const handleQuickNote = () => {
+    if (!quickNote.trim()) return;
+    
+    const noteText = selectedQuickAction 
+      ? `[${selectedQuickAction.toUpperCase()}] ${quickNote}`
+      : quickNote;
+    
+    const interactionType = selectedQuickAction || "note";
+    
+    quickNoteMutation.mutate({
+      type: interactionType as any,
+      text: noteText
     });
+    
+    // Clear selected action after use
+    setSelectedQuickAction(null);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -169,317 +311,561 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     }
   };
 
-  const handleQuickAction = (type: string) => {
-    setNewInteraction({ type: type as any, text: "" });
-    setShowAddInteraction(true);
-  };
-
+  // Filter interactions based on search and type
   const filteredInteractions = interactions.filter(interaction => {
-    const matchesSearch = searchQuery === "" || 
+    const matchesSearch = !searchQuery || 
       interaction.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      interaction.type.toLowerCase().includes(searchQuery.toLowerCase());
-    
+      interaction.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getAssigneeName(interaction.userId).toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === "all" || interaction.type === typeFilter;
-    
     return matchesSearch && matchesType;
   });
 
-  const getInteractionIcon = (type: string) => {
-    switch (type) {
-      case 'call': return <Phone className="h-3 w-3" />;
-      case 'email': return <Mail className="h-3 w-3" />;
-      case 'meeting': return <Calendar className="h-3 w-3" />;
-      case 'note': return <FileText className="h-3 w-3" />;
-      case 'team': return <Users className="h-3 w-3" />;
-      case 'urgent': return <AlertTriangle className="h-3 w-3" />;
-      default: return <MessageSquare className="h-3 w-3" />;
-    }
-  };
-
-  const getInteractionColor = (type: string) => {
-    switch (type) {
-      case 'call': return 'bg-green-500/20 text-green-400 border-green-400/30';
-      case 'email': return 'bg-blue-500/20 text-blue-400 border-blue-400/30';
-      case 'meeting': return 'bg-purple-500/20 text-purple-400 border-purple-400/30';
-      case 'note': return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
-      case 'team': return 'bg-orange-500/20 text-orange-400 border-orange-400/30';
-      case 'urgent': return 'bg-red-500/20 text-red-400 border-red-400/30';
-      default: return 'bg-slate-500/20 text-slate-400 border-slate-400/30';
-    }
-  };
-
-  const priorityColor = {
-    low: 'bg-green-500/20 text-green-400 border-green-400/30',
-    medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30',
-    high: 'bg-red-500/20 text-red-400 border-red-400/30'
-  }[lead.priority as keyof typeof priorityColor] || 'bg-slate-500/20 text-slate-400 border-slate-400/30';
-
-  const statusColor = {
-    new: 'bg-blue-500/20 text-blue-400 border-blue-400/30',
-    contacted: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30',
-    qualified: 'bg-green-500/20 text-green-400 border-green-400/30',
-    proposal: 'bg-purple-500/20 text-purple-400 border-purple-400/30',
-    negotiation: 'bg-orange-500/20 text-orange-400 border-orange-400/30',
-    won: 'bg-green-600/20 text-green-400 border-green-400/30',
-    lost: 'bg-red-500/20 text-red-400 border-red-400/30'
-  }[lead.status as keyof typeof statusColor] || 'bg-slate-500/20 text-slate-400 border-slate-400/30';
-
-
-
   return (
-    <Dialog open={true} onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] bg-slate-900 border-slate-700 overflow-hidden flex flex-col">
-        <DialogHeader className="pb-4 border-b border-slate-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="text-xl font-bold text-white flex items-center gap-3">
-                {lead.name} - {lead.company}
-                <Badge className={priorityColor}>
-                  {lead.priority}
-                </Badge>
-                <Badge className={statusColor}>
-                  {lead.status}
-                </Badge>
-              </DialogTitle>
-              <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
-                <div className="flex items-center gap-1">
-                  <Mail className="h-4 w-4" />
-                  <span>{lead.email}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Phone className="h-4 w-4" />
-                  <span>{lead.phone}</span>
-                </div>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-slate-400 hover:text-white hover:bg-slate-700"
-              data-testid="button-close-lead-details"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+    <Dialog open={true} onOpenChange={onClose}>
+      <DialogContent className="bg-slate-900 border-slate-700 text-slate-100 max-w-4xl max-h-[95vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-left">
+            {lead.company || lead.name}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            View and manage lead interactions, notes, and contact information
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-hidden p-6 space-y-6">
-          {/* Status and Details Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <div className="text-slate-400 mb-1">Status:</div>
-              <Badge className={statusColor}>{lead.status}</Badge>
-            </div>
-            <div>
-              <div className="text-slate-400 mb-1">Priority:</div>
-              <Badge className={priorityColor}>{lead.priority}</Badge>
-            </div>
-            <div>
-              <div className="text-slate-400 mb-1">Score:</div>
-              <div className="flex items-center gap-2">
-                <span className="text-yellow-400 font-semibold">{lead.score}</span>
-                <Star className="h-4 w-4 text-yellow-400 fill-current" />
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-            <div>
-              <div className="text-slate-400 mb-1">Source:</div>
-              <span className="text-white">{lead.source || 'Website'}</span>
-            </div>
-            <div>
-              <div className="text-slate-400 mb-1">Deal Value:</div>
-              <span className="text-green-400 font-semibold">${lead.value?.toLocaleString() || '0'}</span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <div className="text-slate-400 mb-1">Assigned Agent:</div>
-              <span className="text-white">{assignedAgent?.username || 'Unassigned'}</span>
-            </div>
-            <div>
-              <div className="text-slate-400 mb-1">Assigned Engineer:</div>
-              <span className="text-white">{assignedEngineer?.username || 'Unassigned'}</span>
-            </div>
-          </div>
-
-          {/* Engineering Progress Section */}
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center gap-2 mb-4">
-              <Settings className="h-5 w-5 text-slate-400" />
-              <h3 className="text-lg font-semibold text-white">Delivery Progress</h3>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-slate-300">Implementation Progress</span>
-                  <span className="text-blue-400 font-semibold">{engineeringProgress}%</span>
+        <div className="space-y-4">
+          {/* Contact Information */}
+          <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <Mail className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-slate-400 text-sm block">Email:</span>
+                  <a href={`mailto:${lead.email}`} className="text-blue-400 hover:text-blue-300 transition-colors text-sm truncate block">
+                    {lead.email}
+                  </a>
                 </div>
-                <Progress value={engineeringProgress} className="h-2" />
               </div>
-
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-slate-400 text-sm">Started</span>
-                <span className="text-slate-400 text-sm">50% - Milestone</span>
-                <span className="text-slate-400 text-sm">Complete</span>
-              </div>
-
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-slate-300 mr-2">Update:</span>
-                <div className="flex gap-1">
-                  {[0, 25, 50, 75, 100].map((value) => (
-                    <Button
-                      key={value}
-                      variant={engineeringProgress === value ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setEngineeringProgress(value)}
-                      className="px-3 py-1 text-xs"
-                    >
-                      {value}%
-                    </Button>
-                  ))}
+              
+              {lead.phone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <span className="text-slate-400 text-sm block">Phone:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-300 text-sm">{lead.phone}</span>
+                      <a
+                        href={`https://wa.me/${(lead.phone?.replace(/[^\d+]/g, '') || '').startsWith('+') ? (lead.phone?.replace(/[^\d+]/g, '') || '').slice(1) : (lead.phone?.replace(/[^\d+]/g, '') || '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center w-5 h-5 text-green-500 hover:bg-green-500/10 rounded transition-colors flex-shrink-0"
+                        data-testid="link-whatsapp"
+                      >
+                        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488"/>
+                        </svg>
+                      </a>
+                    </div>
+                  </div>
                 </div>
-                <Button
-                  onClick={handleSaveEngineeringNotes}
-                  disabled={saveEngineeringNotesMutation.isPending}
-                  variant="outline"
-                  size="sm"
-                  className="ml-2"
-                >
-                  Update Progress
-                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Lead Information Grid */}
+          <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
+              <div className="space-y-1">
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Status: </span>
+                <Badge className={`${getStatusColor(lead.status)} border text-xs px-2 py-1 w-fit`}>
+                  {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 ? 'In Development' : lead.status}
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Priority: </span>
+                <Badge className={`${getPriorityColor(lead.priority || 'medium')} border text-xs px-2 py-1 w-fit`}>
+                  {lead.priority === 'high' ? 'Hot' : lead.priority || 'medium'}
+                </Badge>
+              </div>
+              <div className="space-y-1">
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Score: </span>
+                <div className="flex items-center gap-1">
+                  <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-400/30 text-xs px-2 py-1">
+                    {lead.score || 55}
+                  </Badge>
+                  <Star className="h-3 w-3 text-yellow-400 fill-current" />
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Source: </span>
+                <span className="text-slate-300 text-sm">{lead.source || 'Website'}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-slate-400 text-xs uppercase tracking-wider">Deal Value: </span>
+                <span className="text-green-400 font-medium text-sm">${lead.value?.toLocaleString() || '45,000'}</span>
               </div>
             </div>
           </div>
 
-          {/* Technical Implementation Notes */}
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center gap-2 mb-4">
-              <Settings className="h-5 w-5 text-slate-400" />
-              <h3 className="text-lg font-semibold text-white">Technical Implementation Notes</h3>
+          {/* Assignment Information */}
+          <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <span className="text-slate-400 text-xs uppercase tracking-wider block">Assigned Agent</span>
+                <span className="text-slate-300 text-sm block">{getAssigneeName(lead.assignedTo)}</span>
+              </div>
+              <div className="space-y-1">
+                <span className="text-slate-400 text-xs uppercase tracking-wider block">Assigned Engineer</span>
+                <span className="text-slate-300 text-sm block">{getEngineerName(lead.assignedEngineer)}</span>
+              </div>
             </div>
-            
-            <Textarea
-              value={engineeringNotes}
-              onChange={(e) => setEngineeringNotes(e.target.value)}
-              placeholder="Working on AI Avatar design - client approved initial concepts. Video ad production starts next week. Need to coordinate with creative team for brand alignment."
-              className="bg-slate-800/50 border-slate-700 min-h-[120px] mb-4"
-            />
-            
-            <Button
-              onClick={handleSaveEngineeringNotes}
-              disabled={saveEngineeringNotesMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {saveEngineeringNotesMutation.isPending ? "Saving..." : "Save Notes"}
-            </Button>
           </div>
 
-
-
-          {/* Notes Section */}
-          {lead.notes && (
-            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-              <h3 className="text-lg font-semibold text-white mb-3">Notes</h3>
-              <p className="text-slate-300">{lead.notes}</p>
+          {/* Engineering Progress */}
+          {lead.assignedEngineer && lead.status === 'won' && (
+            <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+              <div className="space-y-3">
+                <span className="text-slate-400 text-xs uppercase tracking-wider block">Engineering Progress</span>
+                <div className="flex items-center gap-3">
+                  <Progress value={lead.engineeringProgress || 35} className="flex-1 h-2 bg-slate-700" />
+                  <span className="text-blue-400 font-medium text-sm min-w-[40px]">{lead.engineeringProgress || 35}%</span>
+                </div>
+              </div>
             </div>
           )}
 
+          {/* Engineering Notes */}
+          <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+            <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-3">Engineering Notes: </h4>
+            <p className="text-sm text-slate-200 leading-relaxed">
+              {lead.engineeringNotes || "Working on AI Avatar design - client approved initial concepts. Video ad production starts next week. Need to coordinate with creative team for brand alignment."}
+            </p>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <h4 className="text-sm font-medium text-slate-300 mb-2">Tags</h4>
+            <div className="flex flex-wrap gap-2">
+              {lead.priority === 'high' && (
+                <Badge className="bg-red-500/20 text-red-400 border-red-400/30 text-xs">
+                  high-priority
+                </Badge>
+              )}
+              {lead.status === 'won' && (
+                <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs">
+                  video-production
+                </Badge>
+              )}
+              {(lead.engineeringProgress || 0) > 0 && (
+                <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs">
+                  avatar
+                </Badge>
+              )}
+              {lead.source && (
+                <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-xs">
+                  campaign
+                </Badge>
+              )}
+            </div>
+          </div>
+
+          {/* Notes */}
+          <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+            <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-3">Notes</h4>
+            <p className="text-sm text-slate-200 leading-relaxed">
+              Client needs AI Avatar and Video Ad creation for their new product launch campaign. 
+              High priority project with tight deadline.
+            </p>
+          </div>
+
+          {/* Product Interest */}
+          <Card className="bg-slate-800/30 border-slate-700/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <Package className="h-4 w-4 text-slate-400" />
+                <h3 className="font-medium text-white">Product Interest</h3>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
+                  <div>
+                    <h4 className="text-white font-medium">AI Avatar Creation</h4>
+                    <p className="text-slate-400 text-sm">${lead.value ? Math.floor(lead.value * 0.6).toLocaleString() : '27,000'}</p>
+                  </div>
+                  <Badge className="bg-indigo-500/20 text-indigo-400 border-indigo-400/30">
+                    Interested
+                  </Badge>
+                </div>
+                {lead.status === 'won' && (
+                  <div className="flex items-center justify-between p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
+                    <div>
+                      <h4 className="text-white font-medium">AI Generated Video Ad</h4>
+                      <p className="text-slate-400 text-sm">${lead.value ? Math.floor(lead.value * 0.4).toLocaleString() : '18,000'}</p>
+                    </div>
+                    <Badge className="bg-green-500/20 text-green-400 border-green-400/30">
+                      In Progress
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Interaction History */}
+          <Card className="bg-slate-800/30 border-slate-700/50">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-4">
+                <History className="h-4 w-4 text-slate-400" />
+                <h3 className="font-medium text-white">Interaction History</h3>
+                <span className="text-xs text-slate-400 ml-auto">
+                  {filteredInteractions.length} of {interactions.length} record{interactions.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+
+              {/* Search and Filter */}
+              <div className="flex gap-3 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                  <Input
+                    placeholder="Search interactions or team member..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 bg-slate-800/50 border-slate-700"
+                    data-testid="input-search-interactions"
+                  />
+                </div>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="w-32 bg-slate-800/50 border-slate-700" data-testid="select-interaction-filter">
+                    <SelectValue placeholder="All Types" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-800 border-slate-700">
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="note">Note</SelectItem>
+                    <SelectItem value="call">Call</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="meeting">Meeting</SelectItem>
+                    <SelectItem value="team">Team</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Interactions List */}
+              <div className="space-y-3 mb-6">
+                {isLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500 mx-auto"></div>
+                    <p className="text-slate-400 mt-2">Loading interactions...</p>
+                  </div>
+                ) : filteredInteractions.length === 0 ? (
+                  <div className="text-center py-8">
+                    <MessageSquare className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+                    <p className="text-slate-400">{searchQuery || typeFilter !== "all" ? "No matching interactions" : "No interactions yet"}</p>
+                    <p className="text-sm text-slate-500">Add an interaction to get started</p>
+                  </div>
+                ) : (
+                  filteredInteractions.map((interaction: Interaction) => (
+                    <div
+                      key={interaction.id}
+                      className={`rounded-lg p-4 border-l-4 ${getInteractionColor(interaction.type)} hover:bg-slate-700/20 transition-colors`}
+                      data-testid={`interaction-${interaction.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-10 h-10 ${getInteractionIconBg(interaction.type)} rounded-full flex items-center justify-center flex-shrink-0 text-white`}>
+                          {getInteractionIcon(interaction.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-2">
+                            <div>
+                              <h4 className="text-white font-medium capitalize mb-1">
+                                {interaction.type === 'urgent' ? 'Urgent Alert' : interaction.type}
+                              </h4>
+                              <p className="text-xs text-slate-400">
+                                by {getInteractionUserName(interaction.userId)}
+                              </p>
+                            </div>
+                            <div className="text-xs text-slate-400 text-right">
+                              <div>{new Date(interaction.createdAt).toLocaleDateString()}</div>
+                              <div>{new Date(interaction.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            </div>
+                          </div>
+                          <p className="text-sm text-slate-200">{interaction.text}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Quick Actions */}
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+          <div className="space-y-4">
+            <h4 className="text-white font-medium">Quick Actions</h4>
             <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
               <Button
                 onClick={() => handleQuickAction('call')}
-                variant="outline"
-                size="sm"
-                className="flex flex-col items-center gap-1 p-3 h-auto border-blue-500/30 hover:bg-blue-500/10"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'call' 
+                  ? 'bg-blue-600/40 border-blue-400 text-blue-300' 
+                  : 'bg-blue-600/20 hover:bg-blue-600/30 border-blue-500/30 text-blue-400'}`}
+                data-testid="button-quick-call"
               >
-                <Phone className="h-4 w-4 text-blue-400" />
-                <span className="text-xs text-blue-400">Call</span>
+                <Phone className="h-4 w-4 mb-1" />
+                <span className="text-xs">Call</span>
               </Button>
               <Button
                 onClick={() => handleQuickAction('email')}
-                variant="outline"
-                size="sm"
-                className="flex flex-col items-center gap-1 p-3 h-auto border-green-500/30 hover:bg-green-500/10"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'email' 
+                  ? 'bg-green-600/40 border-green-400 text-green-300' 
+                  : 'bg-green-600/20 hover:bg-green-600/30 border-green-500/30 text-green-400'}`}
+                data-testid="button-quick-email"
               >
-                <Mail className="h-4 w-4 text-green-400" />
-                <span className="text-xs text-green-400">Email</span>
+                <Mail className="h-4 w-4 mb-1" />
+                <span className="text-xs">Email</span>
               </Button>
               <Button
                 onClick={() => handleQuickAction('meeting')}
-                variant="outline"
-                size="sm"
-                className="flex flex-col items-center gap-1 p-3 h-auto border-purple-500/30 hover:bg-purple-500/10"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'meeting' 
+                  ? 'bg-purple-600/40 border-purple-400 text-purple-300' 
+                  : 'bg-purple-600/20 hover:bg-purple-600/30 border-purple-500/30 text-purple-400'}`}
+                data-testid="button-quick-meeting"
               >
-                <Calendar className="h-4 w-4 text-purple-400" />
-                <span className="text-xs text-purple-400">Meeting</span>
+                <Calendar className="h-4 w-4 mb-1" />
+                <span className="text-xs">Meeting</span>
               </Button>
               <Button
-                onClick={() => handleQuickAction('note')}
-                variant="outline"
-                size="sm"
-                className="flex flex-col items-center gap-1 p-3 h-auto border-slate-500/30 hover:bg-slate-500/10"
+                onClick={() => setShowAddInteraction(true)}
+                className="flex flex-col items-center justify-center h-16 bg-slate-600/20 hover:bg-slate-600/30 border border-slate-500/30 text-slate-400"
+                data-testid="button-quick-note"
               >
-                <FileText className="h-4 w-4 text-slate-400" />
-                <span className="text-xs text-slate-400">Note</span>
+                <FileText className="h-4 w-4 mb-1" />
+                <span className="text-xs">Note</span>
               </Button>
               <Button
-                onClick={() => setNewInteraction({type: 'note', text: 'Added external link: '})}
-                variant="outline"
-                size="sm"
-                className="flex flex-col items-center gap-1 p-3 h-auto border-cyan-500/30 hover:bg-cyan-500/10"
+                onClick={() => handleQuickAction('team')}
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'team' 
+                  ? 'bg-orange-600/40 border-orange-400 text-orange-300' 
+                  : 'bg-orange-600/20 hover:bg-orange-600/30 border-orange-500/30 text-orange-400'}`}
+                data-testid="button-quick-team"
               >
-                <Link className="h-4 w-4 text-cyan-400" />
-                <span className="text-xs text-cyan-400">Link</span>
+                <Users className="h-4 w-4 mb-1" />
+                <span className="text-xs">Team</span>
               </Button>
               <Button
                 onClick={() => handleQuickAction('urgent')}
-                variant="outline"
-                size="sm"
-                className="flex flex-col items-center gap-1 p-3 h-auto border-red-500/30 hover:bg-red-500/10"
+                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'urgent' 
+                  ? 'bg-red-600/40 border-red-400 text-red-300' 
+                  : 'bg-red-600/20 hover:bg-red-600/30 border-red-500/30 text-red-400'}`}
+                data-testid="button-quick-urgent"
               >
-                <AlertTriangle className="h-4 w-4 text-red-400" />
-                <span className="text-xs text-red-400">Urgent</span>
+                <AlertTriangle className="h-4 w-4 mb-1" />
+                <span className="text-xs">Urgent</span>
               </Button>
             </div>
           </div>
 
           {/* Add Customer Note */}
-          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
-            <div className="flex items-center gap-2 mb-4">
-              <FileText className="h-5 w-5 text-slate-400" />
-              <h3 className="text-lg font-semibold text-white">Add Customer Note</h3>
+          <Card className="bg-slate-800/30 border-slate-700/50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-white font-medium">Add Customer Note</h4>
+                <Badge className="bg-slate-600/20 text-slate-300 text-xs border border-slate-500/30">Note</Badge>
+              </div>
+              <div className="space-y-3">
+                <Textarea
+                  value={quickNote}
+                  onChange={(e) => setQuickNote(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Add a note about this customer..."
+                  className="bg-slate-800/50 border-slate-700 min-h-[80px] resize-none"
+                  data-testid="textarea-quick-note"
+                />
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-slate-400">
+                    Press Enter to save, or Shift+Enter for new line
+                  </p>
+                  <Button
+                    onClick={handleQuickNote}
+                    disabled={!quickNote.trim() || quickNoteMutation.isPending}
+                    className="bg-indigo-600 hover:bg-indigo-700 px-6"
+                    data-testid="button-save-note"
+                  >
+                    {quickNoteMutation.isPending ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* File Attachments */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Paperclip className="h-4 w-4 text-slate-400" />
+              <h4 className="text-slate-400 text-sm font-medium">File Attachments</h4>
             </div>
             
+            {/* Compact Attachment Area */}
+            <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 mb-3">
+              {attachmentsLoading ? (
+                <div className="flex items-center justify-center h-12">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-500"></div>
+                </div>
+              ) : attachments.length > 0 ? (
+                <div className="space-y-1">
+                  {attachments.map((attachment) => {
+                    const formatFileSize = (bytes: number) => {
+                      if (bytes === 0) return '0 B';
+                      const k = 1024;
+                      const sizes = ['B', 'KB', 'MB', 'GB'];
+                      const i = Math.floor(Math.log(bytes) / Math.log(k));
+                      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+                    };
+                    
+                    return (
+                      <div key={attachment.id} className="flex items-center justify-between py-1 px-2 hover:bg-slate-700/20 rounded text-xs">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <div className="w-4 h-4 bg-slate-600/50 rounded flex items-center justify-center flex-shrink-0">
+                            <FileText className="h-2.5 w-2.5 text-slate-300" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-slate-200 truncate font-medium">{attachment.fileName}</span>
+                              <span className="text-slate-500">{formatFileSize(attachment.fileSize || 0)}</span>
+                            </div>
+                            {attachment.description && (
+                              <div className="text-slate-400 text-xs truncate">{attachment.description}</div>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                          <button
+                            onClick={() => window.open(attachment.filePath, '_blank')}
+                            className="text-blue-400 hover:text-blue-300 text-xs px-1.5 py-0.5 rounded hover:bg-blue-500/10"
+                            data-testid={`link-view-attachment-${attachment.id}`}
+                          >
+                            View
+                          </button>
+                          <button
+                            onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
+                            disabled={deleteAttachmentMutation.isPending}
+                            className="text-red-400 hover:text-red-300 text-xs px-1 py-0.5 rounded hover:bg-red-500/10 disabled:opacity-50"
+                            data-testid={`button-delete-attachment-${attachment.id}`}
+                          >
+                            {deleteAttachmentMutation.isPending ? '...' : '×'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-12 text-slate-500 text-xs">
+                  No attachments yet.
+                </div>
+              )}
+            </div>
+            
+            {/* Simple Upload Interface */}
             <div className="space-y-3">
-              <Textarea
-                value={quickNote}
-                onChange={(e) => setQuickNote(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Add a note about this customer..."
-                className="bg-slate-800/50 border-slate-700 min-h-[80px] resize-none"
-                data-testid="textarea-quick-note"
+              <Input 
+                value={fileDescription}
+                onChange={(e) => setFileDescription(e.target.value)}
+                placeholder="Optional description for the files..."
+                className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm h-8"
+                data-testid="input-file-description"
               />
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-slate-400">
-                  Press Enter to save, or Shift+Enter for new line
-                </p>
-                <Button
-                  onClick={handleQuickNote}
-                  disabled={!quickNote.trim() || quickNoteMutation.isPending}
-                  className="bg-purple-600 hover:bg-purple-700"
-                  data-testid="button-save-note"
+              
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  id="file-upload"
+                  multiple
+                  accept="*/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length === 0) return;
+                    
+                    // Store current description
+                    const currentDescription = fileDescription.trim();
+                    
+                    toast({
+                      title: "Uploading",
+                      description: `Uploading ${files.length} file(s)...`,
+                    });
+                    
+                    try {
+                      for (const file of files) {
+                        // Get upload URL
+                        const response = await apiRequest("POST", "/api/objects/upload");
+                        const data = await response.json();
+                        
+                        // Upload file directly to storage
+                        const uploadResponse = await fetch(data.uploadURL || data.url, {
+                          method: 'PUT',
+                          body: file,
+                          headers: {
+                            'Content-Type': file.type || 'application/octet-stream'
+                          }
+                        });
+                        
+                        if (!uploadResponse.ok) {
+                          throw new Error(`Failed to upload ${file.name}`);
+                        }
+                        
+                        // Save file metadata
+                        await apiRequest("PUT", "/api/lead-attachments", {
+                          fileURL: data.uploadURL || data.url,
+                          leadId: lead.id,
+                          fileName: file.name,
+                          fileSize: file.size,
+                          description: currentDescription || null
+                        });
+                      }
+                      
+                      // Refresh data
+                      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+                      queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+                      
+                      // Clear form
+                      setFileDescription("");
+                      e.target.value = ''; // Reset file input
+                      
+                      toast({
+                        title: "Success",
+                        description: `${files.length} file(s) uploaded successfully`,
+                      });
+                      
+                    } catch (error) {
+                      console.error('Upload error:', error);
+                      toast({
+                        variant: "destructive",
+                        title: "Upload Failed",
+                        description: error instanceof Error ? error.message : "Failed to upload files",
+                      });
+                      e.target.value = ''; // Reset file input
+                    }
+                  }}
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium cursor-pointer transition-colors"
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  {quickNoteMutation.isPending ? "Saving..." : "Save"}
-                </Button>
+                  <Upload className="h-4 w-4" />
+                  Choose Files
+                </label>
+                
+                {/* Storage Usage - Compact Version */}
+                <div className="text-xs text-slate-400">
+                  {storageInfo && (
+                    <>
+                      {(storageInfo.storageUsed / (1024 * 1024)).toFixed(1)} MB / {(storageInfo.storageLimit / (1024 * 1024)).toFixed(0)} MB
+                      ({Math.round((storageInfo.storageUsed / storageInfo.storageLimit) * 100)}% used)
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
