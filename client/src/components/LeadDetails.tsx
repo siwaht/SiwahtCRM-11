@@ -429,13 +429,18 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
           </div>
 
           {/* Engineering Progress */}
-          {lead.assignedEngineer && lead.status === 'won' && (
+          {lead.assignedEngineer && (
             <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
               <div className="space-y-3">
                 <span className="text-slate-400 text-xs uppercase tracking-wider block">Engineering Progress</span>
                 <div className="flex items-center gap-3">
-                  <Progress value={lead.engineeringProgress || 35} className="flex-1 h-2 bg-slate-700" />
-                  <span className="text-blue-400 font-medium text-sm min-w-[40px]">{lead.engineeringProgress || 35}%</span>
+                  <div className="flex-1 h-3 bg-slate-700 rounded-full relative overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-500 rounded-full transition-all duration-300"
+                      style={{ width: `${lead.engineeringProgress || 0}%` }}
+                    ></div>
+                  </div>
+                  <span className="text-blue-400 font-medium text-sm min-w-[40px]">{lead.engineeringProgress || 0}%</span>
                 </div>
               </div>
             </div>
