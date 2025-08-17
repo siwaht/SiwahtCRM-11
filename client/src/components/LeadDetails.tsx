@@ -699,176 +699,178 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
             </CardContent>
           </Card>
 
-          {/* File Attachments */}
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Paperclip className="h-4 w-4 text-slate-400" />
-              <h4 className="text-slate-400 text-sm font-medium">File Attachments</h4>
-            </div>
-            
-            {/* Compact Attachment Area */}
-            <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 mb-3">
-              {attachmentsLoading ? (
-                <div className="flex items-center justify-center h-12">
-                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-500"></div>
-                </div>
-              ) : attachments.length > 0 ? (
-                <div className="space-y-1">
-                  {attachments.map((attachment) => {
-                    const formatFileSize = (bytes: number) => {
-                      if (bytes === 0) return '0 B';
-                      const k = 1024;
-                      const sizes = ['B', 'KB', 'MB', 'GB'];
-                      const i = Math.floor(Math.log(bytes) / Math.log(k));
-                      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
-                    };
-                    
-                    return (
-                      <div key={attachment.id} className="flex items-center justify-between py-1 px-2 hover:bg-slate-700/20 rounded text-xs">
-                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                          <div className="w-4 h-4 bg-slate-600/50 rounded flex items-center justify-center flex-shrink-0">
-                            <FileText className="h-2.5 w-2.5 text-slate-300" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="text-slate-200 truncate font-medium">{attachment.fileName}</span>
-                              <span className="text-slate-500">{formatFileSize(attachment.fileSize || 0)}</span>
-                            </div>
-                            {attachment.description && (
-                              <div className="text-slate-400 text-xs truncate">{attachment.description}</div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1 flex-shrink-0 ml-2">
-                          <button
-                            onClick={() => window.open(attachment.filePath, '_blank')}
-                            className="text-blue-400 hover:text-blue-300 text-xs px-1.5 py-0.5 rounded hover:bg-blue-500/10"
-                            data-testid={`link-view-attachment-${attachment.id}`}
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
-                            disabled={deleteAttachmentMutation.isPending}
-                            className="text-red-400 hover:text-red-300 text-xs px-1 py-0.5 rounded hover:bg-red-500/10 disabled:opacity-50"
-                            data-testid={`button-delete-attachment-${attachment.id}`}
-                          >
-                            {deleteAttachmentMutation.isPending ? '...' : '×'}
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-12 text-slate-500 text-xs">
-                  No attachments yet.
-                </div>
-              )}
-            </div>
-            
-            {/* Simple Upload Interface */}
-            <div className="space-y-3">
-              <Input 
-                value={fileDescription}
-                onChange={(e) => setFileDescription(e.target.value)}
-                placeholder="Optional description for the files..."
-                className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm h-8"
-                data-testid="input-file-description"
-              />
+          {/* File Attachments - Admin Only */}
+          {currentUser?.user?.role === 'admin' && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Paperclip className="h-4 w-4 text-slate-400" />
+                <h4 className="text-slate-400 text-sm font-medium">File Attachments</h4>
+              </div>
               
-              <div className="flex items-center gap-3">
-                <input
-                  type="file"
-                  id="file-upload"
-                  multiple
-                  accept="*/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length === 0) return;
-                    
-                    // Store current description
-                    const currentDescription = fileDescription.trim();
-                    
-                    toast({
-                      title: "Uploading",
-                      description: `Uploading ${files.length} file(s)...`,
-                    });
-                    
-                    try {
-                      for (const file of files) {
-                        // Get upload URL
-                        const response = await apiRequest("POST", "/api/objects/upload");
-                        const data = await response.json();
-                        
-                        // Upload file directly to storage
-                        const uploadResponse = await fetch(data.uploadURL || data.url, {
-                          method: 'PUT',
-                          body: file,
-                          headers: {
-                            'Content-Type': file.type || 'application/octet-stream'
+              {/* Compact Attachment Area */}
+              <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-3 mb-3">
+                {attachmentsLoading ? (
+                  <div className="flex items-center justify-center h-12">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-500"></div>
+                  </div>
+                ) : attachments.length > 0 ? (
+                  <div className="space-y-1">
+                    {attachments.map((attachment) => {
+                      const formatFileSize = (bytes: number) => {
+                        if (bytes === 0) return '0 B';
+                        const k = 1024;
+                        const sizes = ['B', 'KB', 'MB', 'GB'];
+                        const i = Math.floor(Math.log(bytes) / Math.log(k));
+                        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+                      };
+                      
+                      return (
+                        <div key={attachment.id} className="flex items-center justify-between py-1 px-2 hover:bg-slate-700/20 rounded text-xs">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <div className="w-4 h-4 bg-slate-600/50 rounded flex items-center justify-center flex-shrink-0">
+                              <FileText className="h-2.5 w-2.5 text-slate-300" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-slate-200 truncate font-medium">{attachment.fileName}</span>
+                                <span className="text-slate-500">{formatFileSize(attachment.fileSize || 0)}</span>
+                              </div>
+                              {attachment.description && (
+                                <div className="text-slate-400 text-xs truncate">{attachment.description}</div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0 ml-2">
+                            <button
+                              onClick={() => window.open(attachment.filePath, '_blank')}
+                              className="text-blue-400 hover:text-blue-300 text-xs px-1.5 py-0.5 rounded hover:bg-blue-500/10"
+                              data-testid={`link-view-attachment-${attachment.id}`}
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
+                              disabled={deleteAttachmentMutation.isPending}
+                              className="text-red-400 hover:text-red-300 text-xs px-1 py-0.5 rounded hover:bg-red-500/10 disabled:opacity-50"
+                              data-testid={`button-delete-attachment-${attachment.id}`}
+                            >
+                              {deleteAttachmentMutation.isPending ? '...' : '×'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-12 text-slate-500 text-xs">
+                    No attachments yet.
+                  </div>
+                )}
+              </div>
+              
+              {/* Simple Upload Interface */}
+              <div className="space-y-3">
+                <Input 
+                  value={fileDescription}
+                  onChange={(e) => setFileDescription(e.target.value)}
+                  placeholder="Optional description for the files..."
+                  className="bg-slate-800/50 border-slate-700/50 text-slate-200 text-sm h-8"
+                  data-testid="input-file-description"
+                />
+                
+                <div className="flex items-center gap-3">
+                  <input
+                    type="file"
+                    id="file-upload"
+                    multiple
+                    accept="*/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files || []);
+                      if (files.length === 0) return;
+                      
+                      // Store current description
+                      const currentDescription = fileDescription.trim();
+                      
+                      toast({
+                        title: "Uploading",
+                        description: `Uploading ${files.length} file(s)...`,
+                      });
+                      
+                      try {
+                        for (const file of files) {
+                          // Get upload URL
+                          const response = await apiRequest("POST", "/api/objects/upload");
+                          const data = await response.json();
+                          
+                          // Upload file directly to storage
+                          const uploadResponse = await fetch(data.uploadURL || data.url, {
+                            method: 'PUT',
+                            body: file,
+                            headers: {
+                              'Content-Type': file.type || 'application/octet-stream'
+                            }
+                          });
+                          
+                          if (!uploadResponse.ok) {
+                            throw new Error(`Failed to upload ${file.name}`);
                           }
-                        });
-                        
-                        if (!uploadResponse.ok) {
-                          throw new Error(`Failed to upload ${file.name}`);
+                          
+                          // Save file metadata
+                          await apiRequest("PUT", "/api/lead-attachments", {
+                            fileURL: data.uploadURL || data.url,
+                            leadId: lead.id,
+                            fileName: file.name,
+                            fileSize: file.size,
+                            description: currentDescription || null
+                          });
                         }
                         
-                        // Save file metadata
-                        await apiRequest("PUT", "/api/lead-attachments", {
-                          fileURL: data.uploadURL || data.url,
-                          leadId: lead.id,
-                          fileName: file.name,
-                          fileSize: file.size,
-                          description: currentDescription || null
+                        // Refresh data
+                        queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
+                        queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+                        
+                        // Clear form
+                        setFileDescription("");
+                        e.target.value = ''; // Reset file input
+                        
+                        toast({
+                          title: "Success",
+                          description: `${files.length} file(s) uploaded successfully`,
                         });
+                        
+                      } catch (error) {
+                        console.error('Upload error:', error);
+                        toast({
+                          variant: "destructive",
+                          title: "Upload Failed",
+                          description: error instanceof Error ? error.message : "Failed to upload files",
+                        });
+                        e.target.value = ''; // Reset file input
                       }
-                      
-                      // Refresh data
-                      queryClient.invalidateQueries({ queryKey: [`/api/leads/${lead.id}/attachments`] });
-                      queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
-                      
-                      // Clear form
-                      setFileDescription("");
-                      e.target.value = ''; // Reset file input
-                      
-                      toast({
-                        title: "Success",
-                        description: `${files.length} file(s) uploaded successfully`,
-                      });
-                      
-                    } catch (error) {
-                      console.error('Upload error:', error);
-                      toast({
-                        variant: "destructive",
-                        title: "Upload Failed",
-                        description: error instanceof Error ? error.message : "Failed to upload files",
-                      });
-                      e.target.value = ''; // Reset file input
-                    }
-                  }}
-                />
-                <label
-                  htmlFor="file-upload"
-                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium cursor-pointer transition-colors"
-                >
-                  <Upload className="h-4 w-4" />
-                  Choose Files
-                </label>
-                
-                {/* Storage Usage - Compact Version */}
-                <div className="text-xs text-slate-400">
-                  {storageInfo && (
-                    <>
-                      {(storageInfo.storageUsed / (1024 * 1024)).toFixed(1)} MB / {(storageInfo.storageLimit / (1024 * 1024)).toFixed(0)} MB
-                      ({Math.round((storageInfo.storageUsed / storageInfo.storageLimit) * 100)}% used)
-                    </>
-                  )}
+                    }}
+                  />
+                  <label
+                    htmlFor="file-upload"
+                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded text-sm font-medium cursor-pointer transition-colors"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Choose Files
+                  </label>
+                  
+                  {/* Storage Usage - Compact Version */}
+                  <div className="text-xs text-slate-400">
+                    {storageInfo && (
+                      <>
+                        {(storageInfo.storageUsed / (1024 * 1024)).toFixed(1)} MB / {(storageInfo.storageLimit / (1024 * 1024)).toFixed(0)} MB
+                        ({Math.round((storageInfo.storageUsed / storageInfo.storageLimit) * 100)}% used)
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Add Interaction Modal */}
