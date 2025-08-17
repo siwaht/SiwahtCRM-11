@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { 
@@ -20,10 +21,13 @@ import {
   AlertTriangle,
   History,
   Search,
-  Package
+  Package,
+  Link,
+  Star,
+  Settings,
+  Save
 } from "lucide-react";
 import type { Lead, Interaction, Product } from "@shared/schema";
-import LeadLinkManager from "./LeadLinkManager";
 
 interface LeadDetailsProps {
   lead: Lead;
@@ -35,6 +39,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
   const [quickNote, setQuickNote] = useState("");
+  const [engineeringNotes, setEngineeringNotes] = useState(lead.engineeringNotes || "");
+  const [engineeringProgress, setEngineeringProgress] = useState(lead.engineeringProgress || 0);
 
   const [newInteraction, setNewInteraction] = useState({
     type: "note" as const,
@@ -105,6 +111,27 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     },
   });
 
+  const saveEngineeringNotesMutation = useMutation({
+    mutationFn: async (data: { engineeringNotes: string; engineeringProgress: number }) => {
+      return await apiRequest("PUT", `/api/leads/${lead.id}`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      toast({
+        title: "Success",
+        description: "Engineering notes saved successfully",
+      });
+    },
+    onError: (error) => {
+      console.error('Save engineering notes error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save engineering notes",
+        variant: "destructive",
+      });
+    },
+  });
+
   const assignedAgent = users.find(u => u.id === lead.assignedTo);
   const assignedEngineer = users.find(u => u.id === lead.assignedEngineer);
 
@@ -128,11 +155,23 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     addInteractionMutation.mutate(newInteraction);
   };
 
+  const handleSaveEngineeringNotes = () => {
+    saveEngineeringNotesMutation.mutate({
+      engineeringNotes,
+      engineeringProgress
+    });
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleQuickNote();
     }
+  };
+
+  const handleQuickAction = (type: string) => {
+    setNewInteraction({ type: type as any, text: "" });
+    setShowAddInteraction(true);
   };
 
   const filteredInteractions = interactions.filter(interaction => {
@@ -173,7 +212,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     low: 'bg-green-500/20 text-green-400 border-green-400/30',
     medium: 'bg-yellow-500/20 text-yellow-400 border-yellow-400/30',
     high: 'bg-red-500/20 text-red-400 border-red-400/30'
-  }[lead.priority] || 'bg-slate-500/20 text-slate-400 border-slate-400/30';
+  }[lead.priority as keyof typeof priorityColor] || 'bg-slate-500/20 text-slate-400 border-slate-400/30';
 
   const statusColor = {
     new: 'bg-blue-500/20 text-blue-400 border-blue-400/30',
@@ -183,11 +222,9 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
     negotiation: 'bg-orange-500/20 text-orange-400 border-orange-400/30',
     won: 'bg-green-600/20 text-green-400 border-green-400/30',
     lost: 'bg-red-500/20 text-red-400 border-red-400/30'
-  }[lead.status] || 'bg-slate-500/20 text-slate-400 border-slate-400/30';
+  }[lead.status as keyof typeof statusColor] || 'bg-slate-500/20 text-slate-400 border-slate-400/30';
 
-  const interestedProducts = Array.isArray(lead.interestedProductNames) 
-    ? lead.interestedProductNames 
-    : [];
+
 
   return (
     <Dialog open={true} onOpenChange={() => onClose()}>
@@ -196,7 +233,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle className="text-xl font-bold text-white flex items-center gap-3">
-                {lead.name}
+                {lead.name} - {lead.company}
                 <Badge className={priorityColor}>
                   {lead.priority}
                 </Badge>
@@ -204,9 +241,16 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                   {lead.status}
                 </Badge>
               </DialogTitle>
-              <DialogDescription className="text-slate-400 mt-1">
-                {lead.company && `${lead.company} • `}{lead.email} • {lead.phone}
-              </DialogDescription>
+              <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
+                <div className="flex items-center gap-1">
+                  <Mail className="h-4 w-4" />
+                  <span>{lead.email}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Phone className="h-4 w-4" />
+                  <span>{lead.phone}</span>
+                </div>
+              </div>
             </div>
             <Button
               variant="ghost"
@@ -220,205 +264,223 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
           </div>
         </DialogHeader>
 
-        <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
-          {/* Left Column - Lead Info & Quick Actions */}
-          <div className="lg:col-span-1 space-y-4 overflow-y-auto">
-            {/* Basic Info */}
-            <div className="space-y-3">
-              <div>
-                <h4 className="text-sm font-medium text-slate-300 mb-2">Contact Info</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Mail className="h-4 w-4" />
-                    <span>{lead.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <Phone className="h-4 w-4" />
-                    <span>{lead.phone}</span>
-                  </div>
-                  {lead.company && (
-                    <div className="flex items-center gap-2 text-slate-400">
-                      <span className="text-slate-500">Company:</span>
-                      <span>{lead.company}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-sm font-medium text-slate-300 mb-2">Deal Info</h4>
-                <div className="flex items-center gap-2 text-slate-400 text-sm">
-                  <span className="text-slate-500">Value:</span>
-                  <span className="font-medium text-green-400">${lead.value?.toLocaleString() || 'N/A'}</span>
-                </div>
-              </div>
-
-              {/* Assignment Info */}
-              <div>
-                <h4 className="text-sm font-medium text-slate-300 mb-2">Assignment</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <span className="text-slate-500">Agent:</span>
-                    <span>{assignedAgent?.username || 'Unassigned'}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-400">
-                    <span className="text-slate-500">Engineer:</span>
-                    <span>{assignedEngineer?.username || 'Unassigned'}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Follow Up Date */}
-              {lead.followUpDate && (
-                <div>
-                  <h4 className="text-sm font-medium text-slate-300 mb-2">Follow Up</h4>
-                  <div className="flex items-center gap-2 text-slate-400 text-sm">
-                    <Calendar className="h-4 w-4" />
-                    <span>{new Date(lead.followUpDate).toLocaleDateString()}</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Notes */}
-              {lead.notes && (
-                <div>
-                  <h4 className="text-sm font-medium text-slate-300 mb-2">Notes</h4>
-                  <p className="text-sm text-slate-400 bg-slate-800/50 rounded p-3 border border-slate-700">
-                    {lead.notes}
-                  </p>
-                </div>
-              )}
+        <div className="flex-1 overflow-hidden p-6 space-y-6">
+          {/* Status and Details Row */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div className="text-slate-400 mb-1">Status:</div>
+              <Badge className={statusColor}>{lead.status}</Badge>
             </div>
-
-            {/* Quick Note */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="h-4 w-4 text-slate-400" />
-                  <Badge className="bg-slate-600/20 text-slate-300 text-xs border border-slate-500/30">Note</Badge>
-                </div>
-                <div className="space-y-3">
-                  <Textarea
-                    value={quickNote}
-                    onChange={(e) => setQuickNote(e.target.value)}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Add a note about this customer..."
-                    className="bg-slate-800/50 border-slate-700 min-h-[80px] resize-none"
-                    data-testid="textarea-quick-note"
-                  />
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs text-slate-400">
-                      Press Enter to save, or Shift+Enter for new line
-                    </p>
-                    <Button
-                      onClick={handleQuickNote}
-                      disabled={!quickNote.trim() || quickNoteMutation.isPending}
-                      className="bg-indigo-600 hover:bg-indigo-700 px-6"
-                      data-testid="button-save-note"
-                    >
-                      {quickNoteMutation.isPending ? "Saving..." : "Save"}
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* External Links Manager */}
-            <LeadLinkManager leadId={lead.id} />
+            <div>
+              <div className="text-slate-400 mb-1">Priority:</div>
+              <Badge className={priorityColor}>{lead.priority}</Badge>
+            </div>
+            <div>
+              <div className="text-slate-400 mb-1">Score:</div>
+              <div className="flex items-center gap-2">
+                <span className="text-yellow-400 font-semibold">{lead.score}</span>
+                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+              </div>
+            </div>
           </div>
 
-          {/* Right Column - Interactions History */}
-          <div className="lg:col-span-2 space-y-4 overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <History className="h-5 w-5 text-slate-400" />
-                <h3 className="text-lg font-semibold text-white">Interaction History</h3>
-                <Badge className="bg-slate-600/20 text-slate-300 text-xs border border-slate-500/30">
-                  {filteredInteractions.length}
-                </Badge>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div>
+              <div className="text-slate-400 mb-1">Source:</div>
+              <span className="text-white">{lead.source || 'Website'}</span>
+            </div>
+            <div>
+              <div className="text-slate-400 mb-1">Deal Value:</div>
+              <span className="text-green-400 font-semibold">${lead.value?.toLocaleString() || '0'}</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <div className="text-slate-400 mb-1">Assigned Agent:</div>
+              <span className="text-white">{assignedAgent?.username || 'Unassigned'}</span>
+            </div>
+            <div>
+              <div className="text-slate-400 mb-1">Assigned Engineer:</div>
+              <span className="text-white">{assignedEngineer?.username || 'Unassigned'}</span>
+            </div>
+          </div>
+
+          {/* Engineering Progress Section */}
+          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center gap-2 mb-4">
+              <Settings className="h-5 w-5 text-slate-400" />
+              <h3 className="text-lg font-semibold text-white">Delivery Progress</h3>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-slate-300">Implementation Progress</span>
+                  <span className="text-blue-400 font-semibold">{engineeringProgress}%</span>
+                </div>
+                <Progress value={engineeringProgress} className="h-2" />
               </div>
+
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-slate-400 text-sm">Started</span>
+                <span className="text-slate-400 text-sm">50% - Milestone</span>
+                <span className="text-slate-400 text-sm">Complete</span>
+              </div>
+
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-slate-300 mr-2">Update:</span>
+                <div className="flex gap-1">
+                  {[0, 25, 50, 75, 100].map((value) => (
+                    <Button
+                      key={value}
+                      variant={engineeringProgress === value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setEngineeringProgress(value)}
+                      className="px-3 py-1 text-xs"
+                    >
+                      {value}%
+                    </Button>
+                  ))}
+                </div>
+                <Button
+                  onClick={handleSaveEngineeringNotes}
+                  disabled={saveEngineeringNotesMutation.isPending}
+                  variant="outline"
+                  size="sm"
+                  className="ml-2"
+                >
+                  Update Progress
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Technical Implementation Notes */}
+          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center gap-2 mb-4">
+              <Settings className="h-5 w-5 text-slate-400" />
+              <h3 className="text-lg font-semibold text-white">Technical Implementation Notes</h3>
+            </div>
+            
+            <Textarea
+              value={engineeringNotes}
+              onChange={(e) => setEngineeringNotes(e.target.value)}
+              placeholder="Working on AI Avatar design - client approved initial concepts. Video ad production starts next week. Need to coordinate with creative team for brand alignment."
+              className="bg-slate-800/50 border-slate-700 min-h-[120px] mb-4"
+            />
+            
+            <Button
+              onClick={handleSaveEngineeringNotes}
+              disabled={saveEngineeringNotesMutation.isPending}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Save className="h-4 w-4 mr-2" />
+              {saveEngineeringNotesMutation.isPending ? "Saving..." : "Save Notes"}
+            </Button>
+          </div>
+
+
+
+          {/* Notes Section */}
+          {lead.notes && (
+            <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+              <h3 className="text-lg font-semibold text-white mb-3">Notes</h3>
+              <p className="text-slate-300">{lead.notes}</p>
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+            <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
               <Button
-                onClick={() => setShowAddInteraction(true)}
-                className="bg-indigo-600 hover:bg-indigo-700"
-                data-testid="button-add-interaction"
+                onClick={() => handleQuickAction('call')}
+                variant="outline"
+                size="sm"
+                className="flex flex-col items-center gap-1 p-3 h-auto border-blue-500/30 hover:bg-blue-500/10"
               >
-                Add Interaction
+                <Phone className="h-4 w-4 text-blue-400" />
+                <span className="text-xs text-blue-400">Call</span>
+              </Button>
+              <Button
+                onClick={() => handleQuickAction('email')}
+                variant="outline"
+                size="sm"
+                className="flex flex-col items-center gap-1 p-3 h-auto border-green-500/30 hover:bg-green-500/10"
+              >
+                <Mail className="h-4 w-4 text-green-400" />
+                <span className="text-xs text-green-400">Email</span>
+              </Button>
+              <Button
+                onClick={() => handleQuickAction('meeting')}
+                variant="outline"
+                size="sm"
+                className="flex flex-col items-center gap-1 p-3 h-auto border-purple-500/30 hover:bg-purple-500/10"
+              >
+                <Calendar className="h-4 w-4 text-purple-400" />
+                <span className="text-xs text-purple-400">Meeting</span>
+              </Button>
+              <Button
+                onClick={() => handleQuickAction('note')}
+                variant="outline"
+                size="sm"
+                className="flex flex-col items-center gap-1 p-3 h-auto border-slate-500/30 hover:bg-slate-500/10"
+              >
+                <FileText className="h-4 w-4 text-slate-400" />
+                <span className="text-xs text-slate-400">Note</span>
+              </Button>
+              <Button
+                onClick={() => setNewInteraction({type: 'note', text: 'Added external link: '})}
+                variant="outline"
+                size="sm"
+                className="flex flex-col items-center gap-1 p-3 h-auto border-cyan-500/30 hover:bg-cyan-500/10"
+              >
+                <Link className="h-4 w-4 text-cyan-400" />
+                <span className="text-xs text-cyan-400">Link</span>
+              </Button>
+              <Button
+                onClick={() => handleQuickAction('urgent')}
+                variant="outline"
+                size="sm"
+                className="flex flex-col items-center gap-1 p-3 h-auto border-red-500/30 hover:bg-red-500/10"
+              >
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+                <span className="text-xs text-red-400">Urgent</span>
               </Button>
             </div>
+          </div>
 
-            {/* Search and Filter */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  placeholder="Search interactions..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 bg-slate-800/50 border-slate-700"
-                  data-testid="input-search-interactions"
-                />
-              </div>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-32 bg-slate-800/50 border-slate-700">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="note">Notes</SelectItem>
-                  <SelectItem value="call">Calls</SelectItem>
-                  <SelectItem value="email">Emails</SelectItem>
-                  <SelectItem value="meeting">Meetings</SelectItem>
-                  <SelectItem value="team">Team</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Add Customer Note */}
+          <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-700">
+            <div className="flex items-center gap-2 mb-4">
+              <FileText className="h-5 w-5 text-slate-400" />
+              <h3 className="text-lg font-semibold text-white">Add Customer Note</h3>
             </div>
-
-            {/* Interactions List */}
-            <div className="flex-1 overflow-y-auto space-y-2">
-              {isLoading ? (
-                <div className="flex items-center justify-center h-32">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
-                </div>
-              ) : filteredInteractions.length === 0 ? (
-                <div className="text-center py-8 text-slate-500">
-                  <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  {searchQuery || typeFilter !== "all" ? (
-                    <p>No interactions match your search criteria.</p>
-                  ) : (
-                    <p>No interactions yet. Add the first interaction to get started!</p>
-                  )}
-                </div>
-              ) : (
-                filteredInteractions.map((interaction) => {
-                  const user = users.find(u => u.id === interaction.userId);
-                  return (
-                    <div 
-                      key={interaction.id} 
-                      className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4"
-                      data-testid={`interaction-${interaction.id}`}
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Badge className={`${getInteractionColor(interaction.type)} text-xs`}>
-                            {getInteractionIcon(interaction.type)}
-                            <span className="ml-1 capitalize">{interaction.type}</span>
-                          </Badge>
-                          <span className="text-xs text-slate-500">
-                            by {user?.username || 'Unknown User'}
-                          </span>
-                        </div>
-                        <span className="text-xs text-slate-500">
-                          {new Date(interaction.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-300 whitespace-pre-wrap">
-                        {interaction.text}
-                      </p>
-                    </div>
-                  );
-                })
-              )}
+            
+            <div className="space-y-3">
+              <Textarea
+                value={quickNote}
+                onChange={(e) => setQuickNote(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Add a note about this customer..."
+                className="bg-slate-800/50 border-slate-700 min-h-[80px] resize-none"
+                data-testid="textarea-quick-note"
+              />
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-slate-400">
+                  Press Enter to save, or Shift+Enter for new line
+                </p>
+                <Button
+                  onClick={handleQuickNote}
+                  disabled={!quickNote.trim() || quickNoteMutation.isPending}
+                  className="bg-purple-600 hover:bg-purple-700"
+                  data-testid="button-save-note"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  {quickNoteMutation.isPending ? "Saving..." : "Save"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
