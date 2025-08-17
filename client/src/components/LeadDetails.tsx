@@ -24,8 +24,7 @@ import {
   Search,
   Star,
   Package,
-  Upload,
-  Link
+  Upload
 } from "lucide-react";
 import type { Lead, Interaction, Product, LeadAttachment } from "@shared/schema";
 
@@ -186,7 +185,6 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
       case "meeting": return <Calendar className="h-4 w-4" />;
       case "urgent": return <AlertTriangle className="h-4 w-4" />;
       case "team": return <Users className="h-4 w-4" />;
-      case "links": return <Link className="h-4 w-4" />;
       default: return <MessageSquare className="h-4 w-4" />;
     }
   };
@@ -198,7 +196,6 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
       case "meeting": return "border-l-purple-500 bg-purple-500/5";
       case "urgent": return "border-l-red-500 bg-red-500/5";
       case "team": return "border-l-orange-500 bg-orange-500/5";
-      case "links": return "border-l-cyan-500 bg-cyan-500/5";
       default: return "border-l-slate-500 bg-slate-500/5";
     }
   };
@@ -210,7 +207,6 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
       case "meeting": return "bg-purple-500";
       case "urgent": return "bg-red-500";
       case "team": return "bg-orange-500";
-      case "links": return "bg-cyan-500";
       default: return "bg-slate-500";
     }
   };
@@ -558,7 +554,6 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                     <SelectItem value="meeting">Meeting</SelectItem>
                     <SelectItem value="team">Team</SelectItem>
                     <SelectItem value="urgent">Urgent</SelectItem>
-                    <SelectItem value="links">Links</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -615,7 +610,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
           {/* Quick Actions */}
           <div className="space-y-4">
             <h4 className="text-white font-medium">Quick Actions</h4>
-            <div className="grid grid-cols-3 md:grid-cols-7 gap-2">
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
               <Button
                 onClick={() => handleQuickAction('call')}
                 className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'call' 
@@ -673,16 +668,6 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
               >
                 <AlertTriangle className="h-4 w-4 mb-1" />
                 <span className="text-xs">Urgent</span>
-              </Button>
-              <Button
-                onClick={() => handleQuickAction('links')}
-                className={`flex flex-col items-center justify-center h-16 border ${selectedQuickAction === 'links' 
-                  ? 'bg-cyan-600/40 border-cyan-400 text-cyan-300' 
-                  : 'bg-cyan-600/20 hover:bg-cyan-600/30 border-cyan-500/30 text-cyan-400'}`}
-                data-testid="button-quick-links"
-              >
-                <Link className="h-4 w-4 mb-1" />
-                <span className="text-xs">Links</span>
               </Button>
             </div>
           </div>
@@ -916,7 +901,6 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                       <SelectItem value="meeting">Meeting</SelectItem>
                       <SelectItem value="team">Team</SelectItem>
                       <SelectItem value="urgent">Urgent Alert</SelectItem>
-                      <SelectItem value="links">Links</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
