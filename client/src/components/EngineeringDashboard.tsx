@@ -49,11 +49,11 @@ export default function EngineeringDashboard() {
 
   // Filter leads for engineer's projects only
   const engineerProjects = leads.filter((lead: Lead) => {
-    if (user?.role === "engineer" && lead.assignedEngineer !== user.id) {
-      return false;
-    }
-    return lead.assignedEngineer === user.id; // Show all leads assigned to this engineer
+    console.log('Lead:', lead.id, 'assignedEngineer:', lead.assignedEngineer, 'user.id:', user?.id);
+    return lead.assignedEngineer === user?.id; // Show all leads assigned to this engineer
   });
+
+  console.log('Total leads:', leads.length, 'Engineer projects:', engineerProjects.length);
 
   const pendingProjects = engineerProjects.filter(lead => (lead.engineeringProgress || 0) === 0);
   const activeProjects = engineerProjects.filter(lead => (lead.engineeringProgress || 0) > 0 && (lead.engineeringProgress || 0) < 100);
