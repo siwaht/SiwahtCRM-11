@@ -245,10 +245,39 @@ export default function ProductCatalog() {
         throw new Error("File must contain headers and at least one data row");
       }
 
-      const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+      // Better CSV parsing function that handles quoted values
+      const parseCSVLine = (line: string): string[] => {
+        const result: string[] = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            result.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        
+        result.push(current.trim());
+        return result;
+      };
+
+      const headers = parseCSVLine(lines[0]);
       
       const products = lines.slice(1).map((line, index) => {
-        const values = line.split(',').map(v => v.replace(/"/g, '').trim());
+        const values = parseCSVLine(line);
+        
+        // Ensure we have enough values, pad with empty strings if needed
+        while (values.length < 8) {
+          values.push('');
+        }
+        
         const productData: any = {
           name: values[0] || "",
           price: values[1] || "",
@@ -260,11 +289,12 @@ export default function ProductCatalog() {
           tags: values[7] ? values[7].split(';').map(t => t.trim()).filter(t => t) : []
         };
 
-        if (!productData.name) {
-          throw new Error(`Row ${index + 2}: Product name is required`);
+        // Better validation with more specific error messages
+        if (!productData.name || productData.name.trim() === '') {
+          throw new Error(`Row ${index + 2}: Product name is required (found: "${productData.name}")`);
         }
-        if (!productData.price) {
-          throw new Error(`Row ${index + 2}: Product price is required`);
+        if (!productData.price || productData.price.trim() === '') {
+          throw new Error(`Row ${index + 2}: Product price is required (found: "${productData.price}"). Values in row: [${values.map(v => `"${v}"`).join(', ')}]`);
         }
 
         return productData;
