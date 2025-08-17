@@ -483,14 +483,15 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
             </div>
           </div>
 
-          {/* Notes */}
-          <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
-            <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-3">Notes</h4>
-            <p className="text-sm text-slate-200 leading-relaxed">
-              Client needs AI Avatar and Video Ad creation for their new product launch campaign. 
-              High priority project with tight deadline.
-            </p>
-          </div>
+          {/* Notes - Only show if there are actual notes */}
+          {lead.notes && (
+            <div className="bg-slate-800/30 border border-slate-700/50 rounded-lg p-4">
+              <h4 className="text-slate-400 text-xs uppercase tracking-wider mb-3">Notes</h4>
+              <p className="text-sm text-slate-200 leading-relaxed">
+                {lead.notes}
+              </p>
+            </div>
+          )}
 
           {/* Product Interest */}
           <Card className="bg-slate-800/30 border-slate-700/50">
