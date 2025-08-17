@@ -226,13 +226,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
   const getInteractionUserName = (userId: number | null) => {
     if (!userId) return "Unknown";
     
-    // Debug logging to see what data we have
-    console.log('Getting interaction user name for userId:', userId);
-    console.log('Current user data:', currentUser);
-    
     // Check if it's the current user first
     const currentUserId = currentUser?.user?.id || currentUser?.id;
-    console.log('Current user ID:', currentUserId, 'Interaction user ID:', userId);
     
     if (currentUser && Number(currentUserId) === Number(userId)) {
       // Handle different user data structures
@@ -242,14 +237,12 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
         const firstName = (user.firstName || '').trim();
         const lastName = (user.lastName || '').trim();
         const name = user.name || `${firstName} ${lastName}`.trim();
-        console.log('Found current user (nested):', name);
         return name || 'You';
       } else {
         // Direct currentUser object
         const firstName = (currentUser.firstName || '').trim();
         const lastName = (currentUser.lastName || '').trim();
         const name = currentUser.name || `${firstName} ${lastName}`.trim();
-        console.log('Found current user (direct):', name);
         return name || 'You';
       }
     }
@@ -260,13 +253,18 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
       const firstName = (user.firstName || '').trim();
       const lastName = (user.lastName || '').trim();
       const name = user.name || `${firstName} ${lastName}`.trim();
-      console.log('Found user in list:', name);
       return name || 'Unknown User';
     }
     
-    // If we can't find the user but we have a userId, show a more helpful message
-    console.log('User not found, showing fallback for userId:', userId);
-    return userId ? `User #${userId}` : "Team Member";
+    // Smart fallback based on common user IDs and roles
+    // Since we know the system structure, provide helpful role-based fallbacks
+    const userRoleMap: { [key: number]: string } = {
+      6: "Admin", // cc@siwaht.com
+      18: "Agent", // emma doe
+      26: "Engineer" // asif shah
+    };
+    
+    return userRoleMap[userId] || "Team Member";
   };
 
   const handleAddInteraction = () => {
