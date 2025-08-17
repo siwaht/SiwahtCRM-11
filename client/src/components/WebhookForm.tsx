@@ -161,13 +161,6 @@ export default function WebhookForm({ webhook, onClose }: WebhookFormProps) {
           <DialogTitle className="text-xl font-semibold">
             {webhook ? "Edit Webhook" : "Add Webhook"}
           </DialogTitle>
-          <Button
-            variant="ghost"
-            onClick={onClose}
-            className="absolute right-4 top-4 p-1"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
