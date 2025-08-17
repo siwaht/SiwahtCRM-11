@@ -32,14 +32,18 @@ export async function triggerWebhooks(event: string, data: any, specificWebhooks
           headers['X-Siwaht-Signature'] = `sha256=${signature}`;
         }
 
+        const webhookBody = {
+          event,
+          data,
+          timestamp: new Date().toISOString(),
+        };
+        
+        console.log(`Sending webhook ${webhook.name} with payload:`, JSON.stringify(webhookBody, null, 2));
+        
         const response = await fetch(webhook.url, {
           method: 'POST',
           headers,
-          body: JSON.stringify({
-            event,
-            data,
-            timestamp: new Date().toISOString(),
-          }),
+          body: JSON.stringify(webhookBody),
         });
 
         if (!response.ok) {
