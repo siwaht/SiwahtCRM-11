@@ -67,49 +67,16 @@ async function initializeSampleData() {
       }
     }
     
-    // Add a sample agent user
-    const existingAgent = await storage.getUserByEmail('agent@siwaht.com');
-    if (!existingAgent) {
-      const hashedPassword = await hashPassword('agent123');
-      await storage.createUser({
-        name: 'John Agent',
-        firstName: 'John',
-        lastName: 'Agent',
-        email: 'agent@siwaht.com',
-        username: 'johna',
-        password: hashedPassword,
-        role: 'agent',
-        isActive: true,
-      });
-      console.log('Created agent user - Email: agent@siwaht.com, Password: agent123');
-    }
+    // No test users created - only admin account exists
     
-    // Add a sample engineer user
-    const existingEngineer = await storage.getUserByEmail('engineer@siwaht.com');
-    if (!existingEngineer) {
-      const hashedPassword = await hashPassword('engineer123');
-      await storage.createUser({
-        name: 'Sarah Engineer',
-        firstName: 'Sarah',
-        lastName: 'Engineer',
-        email: 'engineer@siwaht.com',
-        username: 'sarahe',
-        password: hashedPassword,
-        role: 'engineer',
-        isActive: true,
-      });
-      console.log('Created engineer user - Email: engineer@siwaht.com, Password: engineer123');
-    }
-    
-    // Get the agent user for lead assignment
-    const agent = await storage.getUserByEmail('agent@siwaht.com');
-    const engineer = await storage.getUserByEmail('engineer@siwaht.com');
+    // Get admin user for lead assignment
+    const admin = await storage.getUserByEmail('cc@siwaht.com');
     const products = await storage.getAllProducts();
     
     // Check if leads exist
     const existingLeads = await storage.getAllLeads();
     
-    if (existingLeads.length === 0 && agent && products.length > 0) {
+    if (existingLeads.length === 0 && admin && products.length > 0) {
       // Add sample leads
       const leads = [
         {
@@ -120,8 +87,8 @@ async function initializeSampleData() {
           status: 'qualified' as const,
           source: 'Website',
           value: 15000,
-          assignedTo: agent.id,
-          assignedEngineer: engineer?.id,
+          assignedTo: admin.id,
+          assignedEngineer: admin.id,
           notes: 'Interested in complete AI solution package',
           priority: 'high' as const,
           score: 85,
@@ -136,7 +103,7 @@ async function initializeSampleData() {
           status: 'proposal' as const,
           source: 'Referral',
           value: 8500,
-          assignedTo: agent.id,
+          assignedTo: admin.id,
           notes: 'Looking for AI video ad creator and chat agent',
           priority: 'medium' as const,
           score: 70,

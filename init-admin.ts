@@ -6,7 +6,7 @@ async function initializeAdmin() {
     console.log('Checking for existing admin user...');
     
     // Check if admin exists
-    const existingAdmin = await storage.getUserByEmail('admin@siwaht.com');
+    const existingAdmin = await storage.getUserByEmail('cc@siwaht.com');
     
     if (existingAdmin) {
       console.log('Admin user already exists');
@@ -14,10 +14,10 @@ async function initializeAdmin() {
     }
     
     // Create admin user
-    const hashedPassword = await hashPassword('admin123');
+    const hashedPassword = await hashPassword('Hola173!');
     const admin = await storage.createUser({
       name: 'Admin User',
-      email: 'admin@siwaht.com',
+      email: 'cc@siwaht.com',
       username: 'admin',
       password: hashedPassword,
       role: 'admin',
@@ -25,8 +25,8 @@ async function initializeAdmin() {
     });
     
     console.log('Admin user created successfully!');
-    console.log('Email: admin@siwaht.com');
-    console.log('Password: admin123');
+    console.log('Email: cc@siwaht.com');
+    console.log('Password: Hola173!');
     console.log('Please change the password after first login.');
     
   } catch (error) {
