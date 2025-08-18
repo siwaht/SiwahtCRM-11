@@ -87,7 +87,7 @@ export async function getCurrentUser(req: Request, res: Response) {
     }
 
     const { password: _, ...userWithoutPassword } = user;
-    res.json({ user: userWithoutPassword });
+    res.json(userWithoutPassword);
   } catch (error) {
     console.error('Get current user error:', error);
     res.status(500).json({ message: 'Internal server error' });
