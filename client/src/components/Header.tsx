@@ -179,22 +179,6 @@ export default function Header() {
 
           {/* User Menu */}
           <div className="flex items-center space-x-2 sm:space-x-4">
-            {/* Notifications */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNotifications}
-              className="p-2 hover:bg-slate-800/50 rounded-lg transition-colors relative"
-              data-testid="button-notifications"
-            >
-              <Bell className="h-4 w-4 sm:h-5 sm:w-5 text-slate-400" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 sm:h-5 sm:w-5 flex items-center justify-center text-[10px] sm:text-xs">
-                  {unreadCount > 9 ? '9+' : unreadCount}
-                </span>
-              )}
-            </Button>
-            
             {/* User Profile */}
             <div className="flex items-center space-x-1 sm:space-x-3 bg-slate-800/30 px-2 sm:px-3 py-2 rounded-xl">
               <div 
@@ -208,19 +192,17 @@ export default function Header() {
                 <div className="hidden sm:block">
                   <p className="text-sm font-medium text-white" data-testid="text-username">
                     {(() => {
-                      // Handle nested user object structure
-                      const userData = user?.user || user;
-                      if (userData?.name) return userData.name.trim();
-                      const firstName = (userData?.firstName || '').trim();
-                      const lastName = (userData?.lastName || '').trim();
+                      if (user?.name) return user.name.trim();
+                      const firstName = (user?.firstName || '').trim();
+                      const lastName = (user?.lastName || '').trim();
                       const fullName = `${firstName} ${lastName}`.trim();
                       if (fullName) return fullName;
-                      if (userData?.username) return userData.username;
-                      if (userData?.email) return userData.email.split('@')[0];
-                      return userData?.role ? `${userData.role.charAt(0).toUpperCase() + userData.role.slice(1)}` : 'Team Member';
+                      if (user?.username) return user.username;
+                      if (user?.email) return user.email.split('@')[0];
+                      return user?.role ? `${user.role.charAt(0).toUpperCase() + user.role.slice(1)}` : 'Team Member';
                     })()}
                   </p>
-                  <p className="text-xs text-slate-400 capitalize" data-testid="text-userrole">{(user?.user || user)?.role}</p>
+                  <p className="text-xs text-slate-400 capitalize" data-testid="text-userrole">{user?.role}</p>
                 </div>
               </div>
               <Button
@@ -355,20 +337,18 @@ export default function Header() {
                     <div className="flex items-center gap-4 mb-3">
                       <h2 className="text-2xl font-bold text-white">
                         {(() => {
-                          // Handle nested user object structure
-                          const userData = user?.user || user;
-                          if (userData?.name) return userData.name.trim();
-                          const firstName = (userData?.firstName || '').trim();
-                          const lastName = (userData?.lastName || '').trim();
+                          if (user?.name) return user.name.trim();
+                          const firstName = (user?.firstName || '').trim();
+                          const lastName = (user?.lastName || '').trim();
                           const fullName = `${firstName} ${lastName}`.trim();
                           if (fullName) return fullName;
-                          if (userData?.username) return userData.username;
-                          if (userData?.email) return userData.email.split('@')[0];
-                          return userData?.role ? `${userData.role.charAt(0).toUpperCase() + userData.role.slice(1)}` : 'Team Member';
+                          if (user?.username) return user.username;
+                          if (user?.email) return user.email.split('@')[0];
+                          return user?.role ? `${user.role.charAt(0).toUpperCase() + user.role.slice(1)}` : 'Team Member';
                         })()}
                       </h2>
-                      <Badge className={`${getRoleColor((user?.user || user)?.role || '')} border text-sm px-3 py-1 font-medium`}>
-                        {(user?.user || user)?.role || 'User'}
+                      <Badge className={`${getRoleColor(user?.role || '')} border text-sm px-3 py-1 font-medium`}>
+                        {user?.role || 'User'}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-slate-300">
@@ -404,15 +384,13 @@ export default function Header() {
                     <div className="bg-slate-800/70 border border-slate-600/50 rounded-lg p-3">
                       <p className="text-white font-medium">
                         {(() => {
-                          // Handle nested user object structure
-                          const userData = user?.user || user;
-                          if (userData?.name) return userData.name.trim();
-                          const firstName = (userData?.firstName || '').trim();
-                          const lastName = (userData?.lastName || '').trim();
+                          if (user?.name) return user.name.trim();
+                          const firstName = (user?.firstName || '').trim();
+                          const lastName = (user?.lastName || '').trim();
                           const fullName = `${firstName} ${lastName}`.trim();
                           if (fullName) return fullName;
-                          if (userData?.username) return userData.username;
-                          if (userData?.email) return userData.email.split('@')[0];
+                          if (user?.username) return user.username;
+                          if (user?.email) return user.email.split('@')[0];
                           return 'Not provided';
                         })()}
                       </p>
@@ -425,7 +403,7 @@ export default function Header() {
                     </Label>
                     <div className="bg-slate-800/70 border border-slate-600/50 rounded-lg p-3">
                       <p className="text-white font-medium">
-                        {(user?.user || user)?.username || 'Not provided'}
+                        {user?.username || 'Not provided'}
                       </p>
                     </div>
                   </div>
@@ -436,10 +414,10 @@ export default function Header() {
                     </Label>
                     <div className="bg-slate-800/70 border border-slate-600/50 rounded-lg p-3">
                       <p className="text-white font-medium">
-                        {(user?.user || user)?.email || 'Not provided'}
+                        {user?.email || 'Not provided'}
                       </p>
-                      {(user?.user || user)?.email && (
-                        <a href={`mailto:${(user?.user || user).email}`} className="text-blue-400 hover:text-blue-300 text-sm mt-1 inline-block">
+                      {user?.email && (
+                        <a href={`mailto:${user.email}`} className="text-blue-400 hover:text-blue-300 text-sm mt-1 inline-block">
                           Send Email →
                         </a>
                       )}
@@ -451,13 +429,13 @@ export default function Header() {
                       User Role
                     </Label>
                     <div className="bg-slate-800/70 border border-slate-600/50 rounded-lg p-3">
-                      <Badge className={`${getRoleColor((user?.user || user)?.role || '')} border px-3 py-1.5 text-sm font-medium`}>
-                        {(user?.user || user)?.role || 'User'}
+                      <Badge className={`${getRoleColor(user?.role || '')} border px-3 py-1.5 text-sm font-medium`}>
+                        {user?.role || 'User'}
                       </Badge>
                       <p className="text-slate-400 text-xs mt-2">
-                        {(user?.user || user)?.role === 'admin' ? 'Full system access and management' : 
-                         (user?.user || user)?.role === 'agent' ? 'Lead management and sales operations' :
-                         (user?.user || user)?.role === 'engineer' ? 'Technical implementation and development' :
+                        {user?.role === 'admin' ? 'Full system access and management' : 
+                         user?.role === 'agent' ? 'Lead management and sales operations' :
+                         user?.role === 'engineer' ? 'Technical implementation and development' :
                          'Standard user access'}
                       </p>
                     </div>
@@ -494,7 +472,7 @@ export default function Header() {
                       <UserCircle className="h-6 w-6 text-indigo-400" />
                     </div>
                     <div className="text-2xl font-bold text-indigo-400 mb-1">
-                      #{(user?.user || user)?.id || '1'}
+                      #{user?.id || '1'}
                     </div>
                     <div className="text-sm text-slate-400 mb-2">User ID</div>
                     <div className="text-xs text-slate-500">System identifier</div>

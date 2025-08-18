@@ -291,33 +291,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-      {/* Recent Activity */}
-      <Card className="bg-slate-800/30 border-slate-700/50 backdrop-blur-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-2 mb-6">
-            <Clock className="h-5 w-5 text-slate-400" />
-            <h3 className="text-lg font-semibold text-white">Recent Activity</h3>
-          </div>
-          
-          {recentActivities.length > 0 ? (
-            <div className="space-y-4">
-              {recentActivities.map((activity: any, index: number) => (
-                <div key={index} className="flex items-center gap-4 p-4 bg-slate-800/20 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <div className="flex-1">
-                    <p className="text-sm text-slate-200">{activity.title}</p>
-                    <p className="text-xs text-slate-400">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-slate-400">
-              <p>No recent activity</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
