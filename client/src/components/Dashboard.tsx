@@ -74,55 +74,60 @@ export default function Dashboard() {
     },
     {
       title: "Tasks & Alerts",
-      value: 2,
-      subtitle: "Active agents",
+      value: analytics?.leadsByStatus?.find(s => s.status === 'qualified')?.count || 0,
+      subtitle: "Qualified leads",
       icon: AlertTriangle,
       color: "from-orange-600 to-orange-800",
       bgColor: "bg-orange-900/20"
     }
   ];
 
-  const leadsByStatus = [
-    { status: "New", count: 0 },
-    { status: "Contacted", count: 1 },  
-    { status: "Qualified", count: 0 },
-    { status: "Proposal", count: 0 },
-    { status: "Closed - Won", count: 0 },
-    { status: "Closed - Lost", count: 0 }
-  ];
+  const leadsByStatus = analytics?.leadsByStatus || [];
+
+  // Get lead sources from API - we need to add this to the analytics endpoint
+  const { data: leads } = useQuery({
+    queryKey: ["/api/leads"],
+  });
+
+  // Create lead sources from actual data
+  const leadSourcesData = (leads as any[])?.reduce((acc: any, lead: any) => {
+    const source = lead.source || 'Other';
+    acc[source] = (acc[source] || 0) + 1;
+    return acc;
+  }, {}) || {};
 
   const leadSources = [
-    { source: "Website", count: 1, color: "bg-blue-500" },
-    { source: "Referral", count: 0, color: "bg-green-500" },
-    { source: "Cold Call", count: 0, color: "bg-orange-500" },
-    { source: "Advertisement", count: 0, color: "bg-red-500" },
-    { source: "Other", count: 0, color: "bg-gray-500" }
+    { source: "Website", count: leadSourcesData["Website"] || 0, color: "bg-blue-500" },
+    { source: "Referral", count: leadSourcesData["Referral"] || 0, color: "bg-green-500" },
+    { source: "Cold Call", count: leadSourcesData["Cold Call"] || 0, color: "bg-orange-500" },
+    { source: "Advertisement", count: leadSourcesData["Advertisement"] || 0, color: "bg-red-500" },
+    { source: "Other", count: leadSourcesData["Other"] || 0, color: "bg-gray-500" }
   ];
 
+  // Calculate quick action stats from analytics and leads data
+  const newLeadsCount = analytics?.leadsByStatus?.find(status => status.status === 'new')?.count || 0;
+  const pipelineCount = analytics?.leadsByStatus?.filter(status => 
+    !['won', 'lost'].includes(status.status)
+  )?.reduce((sum, status) => sum + status.count, 0) || 0;
+  
   const quickActionStats = [
-    { label: "Hot Leads", count: 0, color: "bg-red-600/20 text-red-400" },
-    { label: "Overdue", count: 0, color: "bg-yellow-600/20 text-yellow-400" },
-    { label: "New", count: 0, color: "bg-blue-600/20 text-blue-400" },
-    { label: "Pipeline", count: 0, color: "bg-green-600/20 text-green-400" }
+    { label: "Hot Leads", count: analytics?.leadsByStatus?.find(s => s.status === 'proposal')?.count || 0, color: "bg-red-600/20 text-red-400" },
+    { label: "Overdue", count: 0, color: "bg-yellow-600/20 text-yellow-400" }, // This would need follow-up date logic
+    { label: "New", count: newLeadsCount, color: "bg-blue-600/20 text-blue-400" },
+    { label: "Pipeline", count: pipelineCount, color: "bg-green-600/20 text-green-400" }
   ];
 
-  const recentActivities = [
-    {
-      title: "Lead updated: Sarah Johnson",
-      time: "2 minutes ago",
-      type: "lead"
-    },
-    {
-      title: "New interaction logged",
-      time: "1 hour ago", 
-      type: "interaction"
-    },
-    {
-      title: "Pipeline status changed",
-      time: "3 hours ago",
-      type: "status"
-    }
-  ];
+  // Get recent activities from interactions API
+  const { data: interactions } = useQuery({
+    queryKey: ["/api/interactions"],
+  });
+
+  // Create recent activities from actual interaction data
+  const recentActivities = (interactions as any[])?.slice(0, 5)?.map((interaction: any) => ({
+    title: `${interaction.type}: ${interaction.text.substring(0, 50)}...`,
+    time: new Date(interaction.createdAt).toLocaleDateString(),
+    type: interaction.type
+  })) || [];
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -294,7 +299,7 @@ export default function Dashboard() {
           
           {recentActivities.length > 0 ? (
             <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
+              {recentActivities.map((activity: any, index: number) => (
                 <div key={index} className="flex items-center gap-4 p-4 bg-slate-800/20 rounded-lg">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                   <div className="flex-1">
