@@ -69,11 +69,112 @@ async function initializeSampleData() {
     
     // No test users created - only admin account exists
     
-    // No sample leads created - start with a clean database
+    // Get admin user for lead assignment
+    const admin = await storage.getUserByEmail('cc@siwaht.com');
+    const products = await storage.getAllProducts();
+    
+    // Check if leads exist
+    const existingLeads = await storage.getAllLeads();
+    
+    if (existingLeads.length === 0 && admin && products.length > 0) {
+      // Add sample leads
+      const leads = [
+        {
+          name: 'Tech Startup Inc',
+          email: 'contact@techstartup.com',
+          phone: '+1-555-0100',
+          company: 'Tech Startup Inc',
+          status: 'qualified' as const,
+          source: 'Website',
+          value: 15000,
+          assignedTo: admin.id,
+          assignedEngineer: admin.id,
+          notes: 'Interested in complete AI solution package',
+          priority: 'high' as const,
+          score: 85,
+          engineeringProgress: 30,
+          tags: ['hot-lead', 'enterprise'],
+        },
+        {
+          name: 'Digital Marketing Co',
+          email: 'info@digitalmarketing.com',
+          phone: '+1-555-0101',
+          company: 'Digital Marketing Co',
+          status: 'proposal' as const,
+          source: 'Referral',
+          value: 8500,
+          assignedTo: admin.id,
+          notes: 'Looking for AI video ad creator and chat agent',
+          priority: 'medium' as const,
+          score: 70,
+          tags: ['marketing', 'referral'],
+        },
+        {
+          name: 'E-commerce Solutions',
+          email: 'sales@ecommerce.com',
+          phone: '+1-555-0102',
+          company: 'E-commerce Solutions',
+          status: 'new' as const,
+          source: 'Cold Call',
+          value: 5000,
+          assignedTo: agent.id,
+          notes: 'Initial contact made, scheduling demo',
+          priority: 'medium' as const,
+          score: 50,
+          tags: ['e-commerce', 'new'],
+        },
+        {
+          name: 'Healthcare Plus',
+          email: 'admin@healthcareplus.com',
+          phone: '+1-555-0103',
+          company: 'Healthcare Plus',
+          status: 'negotiation' as const,
+          source: 'Trade Show',
+          value: 25000,
+          assignedTo: agent.id,
+          assignedEngineer: engineer?.id,
+          notes: 'Needs voice AI for patient scheduling',
+          priority: 'high' as const,
+          score: 90,
+          engineeringProgress: 60,
+          engineeringNotes: 'Custom integration with their EMR system required',
+          tags: ['healthcare', 'enterprise', 'priority'],
+        },
+        {
+          name: 'Local Restaurant Chain',
+          email: 'owner@restaurant.com',
+          phone: '+1-555-0104',
+          company: 'Restaurant Chain LLC',
+          status: 'contacted' as const,
+          source: 'Email Campaign',
+          value: 3500,
+          assignedTo: agent.id,
+          notes: 'Interested in website and chat support',
+          priority: 'low' as const,
+          score: 40,
+          tags: ['restaurant', 'small-business'],
+        }
+      ];
+      
+      for (const lead of leads) {
+        const createdLead = await storage.createLead(lead);
+        console.log(`Created lead: ${lead.name}`);
+        
+        // Associate products with leads
+        if (createdLead && products.length > 0) {
+          // Add 1-2 random products to each lead
+          const numProducts = Math.floor(Math.random() * 2) + 1;
+          const productIds = products.slice(0, numProducts).map(p => p.id);
+          await storage.addLeadProducts(createdLead.id, productIds);
+        }
+      }
+    }
     
     console.log('Sample data initialization complete!');
     console.log('\nAvailable login credentials:');
-    console.log('Admin: cc@siwaht.com / Hola173!');
+    console.log('Admin: admin@siwaht.com / admin123');
+    console.log('Agent: agent@siwaht.com / agent123');
+    console.log('Engineer: engineer@siwaht.com / engineer123');
     
   } catch (error) {
     console.error('Error initializing sample data:', error);
