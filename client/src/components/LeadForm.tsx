@@ -126,7 +126,7 @@ export default function LeadForm({ lead, onClose }: LeadFormProps) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700 w-[95vw] mx-auto">
         <DialogHeader>
           <DialogTitle className="text-slate-100 text-lg">
             {lead ? "Edit Lead" : "Create a new lead record"}

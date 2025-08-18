@@ -141,27 +141,27 @@ export default function Dashboard() {
         </p>
       </div>
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {statsCards.map((stat, index) => {
           const Icon = stat.icon;
           
           return (
             <Card key={index} className={`${stat.bgColor} border-slate-700/50 backdrop-blur-sm`}>
-              <CardContent className="p-4 sm:p-6">
-                <div className="flex items-start justify-between">
+              <CardContent className="p-3 sm:p-6">
+                <div className="flex flex-col">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Icon className="h-4 w-4 text-slate-400" />
-                      <p className="text-slate-400 text-xs sm:text-sm font-medium">{stat.title}</p>
+                    <div className="flex items-center gap-1 sm:gap-2 mb-1 sm:mb-2">
+                      <Icon className="h-3 w-3 sm:h-4 sm:w-4 text-slate-400" />
+                      <p className="text-slate-400 text-[10px] sm:text-sm font-medium truncate">{stat.title}</p>
                     </div>
-                    <p className="text-xl sm:text-2xl font-bold text-white mb-1" data-testid={`stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
+                    <p className="text-base sm:text-2xl font-bold text-white mb-1" data-testid={`stat-${stat.title.toLowerCase().replace(/\s+/g, '-')}`}>
                       {stat.value}
                     </p>
-                    <p className="text-xs sm:text-sm text-slate-400">
+                    <p className="text-[10px] sm:text-sm text-slate-400 truncate">
                       {stat.subtitle}
                     </p>
                     {stat.description && (
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-[10px] sm:text-xs text-slate-500 mt-1 hidden sm:block">
                         {stat.description}
                       </p>
                     )}

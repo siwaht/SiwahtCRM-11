@@ -164,7 +164,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-14 sm:h-16">
           {/* Logo */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center overflow-hidden">
+            <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center overflow-hidden">
               <img 
                 src={siwatLogoPath} 
                 alt="Siwaht Logo" 
@@ -172,7 +172,10 @@ export default function Header() {
               />
             </div>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold">Siwaht CRM</h1>
+              <h1 className="text-base sm:text-xl font-bold">
+                <span className="hidden sm:inline">Siwaht CRM</span>
+                <span className="sm:hidden">Siwaht</span>
+              </h1>
               <p className="text-xs text-slate-400 hidden sm:block">AI Service Platform</p>
             </div>
           </div>
