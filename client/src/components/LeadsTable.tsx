@@ -427,22 +427,11 @@ export default function LeadsTable() {
                     </span>
                   </div>
                   <div className="text-sm">
-                    {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 && (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-sm px-2 py-1">
-                        Video Ad
-                      </Badge>
-                    )}
-                    {lead.status === 'won' && (lead.engineeringProgress || 0) === 0 && (
-                      <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-sm px-2 py-1">
-                        AI Avatar
-                      </Badge>
-                    )}
-                    {lead.status !== 'won' && lead.assignedProduct && (
+                    {(lead as any).products && (lead as any).products.length > 0 ? (
                       <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-sm px-2 py-1">
-                        Podcast
+                        {(lead as any).products[0].name}
                       </Badge>
-                    )}
-                    {!lead.assignedProduct && (
+                    ) : (
                       <span className="text-sm text-slate-500">No Product</span>
                     )}
                   </div>
@@ -525,22 +514,11 @@ export default function LeadsTable() {
                 {/* Products */}
                 <div className="col-span-1">
                   <div className="truncate">
-                    {lead.status === 'won' && (lead.engineeringProgress || 0) > 0 && (
-                      <Badge className="bg-green-500/20 text-green-400 border-green-400/30 text-xs px-1 py-0.5">
-                        Video Ad
-                      </Badge>
-                    )}
-                    {lead.status === 'won' && (lead.engineeringProgress || 0) === 0 && (
-                      <Badge className="bg-purple-500/20 text-purple-400 border-purple-400/30 text-xs px-1 py-0.5">
-                        AI Avatar
-                      </Badge>
-                    )}
-                    {lead.status !== 'won' && lead.assignedProduct && (
+                    {(lead as any).products && (lead as any).products.length > 0 ? (
                       <Badge className="bg-blue-500/20 text-blue-400 border-blue-400/30 text-xs px-1 py-0.5">
-                        Podcast
+                        {(lead as any).products[0].name}
                       </Badge>
-                    )}
-                    {!lead.assignedProduct && (
+                    ) : (
                       <span className="text-xs text-slate-500">None</span>
                     )}
                   </div>
@@ -555,7 +533,11 @@ export default function LeadsTable() {
                 
                 {/* Follow-up */}
                 <div className="col-span-1">
-                  <span className="text-xs text-slate-500 truncate block">Not set</span>
+                  <span className="text-xs text-slate-500 truncate block">
+                    {lead.followUpDate 
+                      ? new Date(lead.followUpDate).toLocaleDateString() 
+                      : "Not set"}
+                  </span>
                 </div>
                 
                 {/* Assigned */}

@@ -275,7 +275,7 @@ export class DatabaseStorage implements IStorage {
     return { ...lead, products: productsList };
   }
 
-  async getAllLeads(filters?: LeadFilters): Promise<Lead[]> {
+  async getAllLeads(filters?: LeadFilters): Promise<(Lead & { products?: Product[] })[]> {
     let query = db.select().from(leads);
     const conditions = [];
 
@@ -301,11 +301,28 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
+    let leadsResult;
     if (conditions.length > 0) {
-      return await db.select().from(leads).where(and(...conditions)).orderBy(desc(leads.createdAt));
+      leadsResult = await db.select().from(leads).where(and(...conditions)).orderBy(desc(leads.createdAt));
+    } else {
+      leadsResult = await db.select().from(leads).orderBy(desc(leads.createdAt));
     }
 
-    return await db.select().from(leads).orderBy(desc(leads.createdAt));
+    // Fetch products for each lead
+    const leadsWithProducts = await Promise.all(
+      leadsResult.map(async (lead) => {
+        const leadProductsData = await db
+          .select({ product: products })
+          .from(leadProducts)
+          .innerJoin(products, eq(leadProducts.productId, products.id))
+          .where(eq(leadProducts.leadId, lead.id));
+        
+        const productsList = leadProductsData.map(item => item.product);
+        return { ...lead, products: productsList };
+      })
+    );
+
+    return leadsWithProducts;
   }
 
   async createLead(insertLead: InsertLead, productIds?: number[]): Promise<Lead> {
