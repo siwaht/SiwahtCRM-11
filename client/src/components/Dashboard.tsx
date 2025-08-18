@@ -26,9 +26,21 @@ interface AnalyticsData {
 }
 
 export default function Dashboard() {
-  const { data: analytics, isLoading } = useQuery<AnalyticsData>({
+  const { data: analytics, isLoading: analyticsLoading } = useQuery<AnalyticsData>({
     queryKey: ["/api/analytics"],
   });
+
+  // Get lead sources from API - moved to top for hooks order
+  const { data: leads, isLoading: leadsLoading } = useQuery({
+    queryKey: ["/api/leads"],
+  });
+
+  // Get recent activities from interactions API - moved to top for hooks order
+  const { data: interactions, isLoading: interactionsLoading } = useQuery({
+    queryKey: ["/api/interactions"],
+  });
+
+  const isLoading = analyticsLoading || leadsLoading || interactionsLoading;
 
   if (isLoading) {
     return (
@@ -84,11 +96,6 @@ export default function Dashboard() {
 
   const leadsByStatus = analytics?.leadsByStatus || [];
 
-  // Get lead sources from API - we need to add this to the analytics endpoint
-  const { data: leads } = useQuery({
-    queryKey: ["/api/leads"],
-  });
-
   // Create lead sources from actual data
   const leadSourcesData = (leads as any[])?.reduce((acc: any, lead: any) => {
     const source = lead.source || 'Other';
@@ -116,11 +123,6 @@ export default function Dashboard() {
     { label: "New", count: newLeadsCount, color: "bg-blue-600/20 text-blue-400" },
     { label: "Pipeline", count: pipelineCount, color: "bg-green-600/20 text-green-400" }
   ];
-
-  // Get recent activities from interactions API
-  const { data: interactions } = useQuery({
-    queryKey: ["/api/interactions"],
-  });
 
   // Create recent activities from actual interaction data
   const recentActivities = (interactions as any[])?.slice(0, 5)?.map((interaction: any) => ({
