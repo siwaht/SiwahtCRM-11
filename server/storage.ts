@@ -645,21 +645,44 @@ export class DatabaseStorage implements IStorage {
       // Clear all existing data first (preserves admin users)
       await this.deleteDatabase();
 
+      // Create ID mappings to handle foreign key relationships
+      const userIdMap = new Map<number, number>();
+      const leadIdMap = new Map<number, number>();
+      const productIdMap = new Map<number, number>();
+
+      // Map existing admin users to preserve references
+      const existingAdmins = await db.select().from(users).where(eq(users.role, 'admin'));
+      for (const admin of existingAdmins) {
+        // Find matching admin in export data by email
+        const exportedAdmin = data.data.users?.find((u: any) => u.email === admin.email && u.role === 'admin');
+        if (exportedAdmin) {
+          userIdMap.set(exportedAdmin.id, admin.id);
+        }
+      }
+
       // Import data in the correct order (respecting foreign key constraints)
       // First import independent tables
       if (data.data.users?.length > 0) {
         // Only import non-admin users to preserve existing admin accounts
         const nonAdminUsers = data.data.users.filter((user: any) => user.role !== 'admin');
         for (const user of nonAdminUsers) {
+          const oldId = user.id;
           const { id, createdAt, updatedAt, ...insertData } = user as any;
-          await db.insert(users).values(insertData);
+          const [newUser] = await db.insert(users).values(insertData).returning({ id: users.id });
+          if (oldId && newUser) {
+            userIdMap.set(oldId, newUser.id);
+          }
         }
       }
 
       if (data.data.products?.length > 0) {
         for (const product of data.data.products) {
+          const oldId = product.id;
           const { id, createdAt, updatedAt, ...insertData } = product as any;
-          await db.insert(products).values(insertData);
+          const [newProduct] = await db.insert(products).values(insertData).returning({ id: products.id });
+          if (oldId && newProduct) {
+            productIdMap.set(oldId, newProduct.id);
+          }
         }
       }
 
@@ -681,38 +704,84 @@ export class DatabaseStorage implements IStorage {
         }
       }
 
-      // Then import dependent tables
+      // Then import dependent tables with mapped IDs
       if (data.data.leads?.length > 0) {
         for (const lead of data.data.leads) {
+          const oldId = lead.id;
           const { id, createdAt, updatedAt, ...insertData } = lead as any;
-          // Convert date strings back to Date objects if needed
+          
+          // Map user IDs to new IDs
           const leadData = {
             ...insertData,
             followUpDate: lead.followUpDate ? new Date(lead.followUpDate) : null,
-            lastContactedAt: lead.lastContactedAt ? new Date(lead.lastContactedAt) : null
+            lastContactedAt: lead.lastContactedAt ? new Date(lead.lastContactedAt) : null,
+            // Map assignedTo and assignedEngineer to new user IDs
+            assignedTo: lead.assignedTo ? (userIdMap.get(lead.assignedTo) || null) : null,
+            assignedEngineer: lead.assignedEngineer ? (userIdMap.get(lead.assignedEngineer) || null) : null
           };
-          await db.insert(leads).values(leadData);
+          
+          const [newLead] = await db.insert(leads).values(leadData).returning({ id: leads.id });
+          if (oldId && newLead) {
+            leadIdMap.set(oldId, newLead.id);
+          }
         }
       }
 
       if (data.data.interactions?.length > 0) {
         for (const interaction of data.data.interactions) {
           const { id, createdAt, updatedAt, ...insertData } = interaction as any;
-          await db.insert(interactions).values(insertData);
+          
+          // Map leadId and userId to new IDs
+          const mappedLeadId = leadIdMap.get(interaction.leadId);
+          const mappedUserId = userIdMap.get(interaction.userId);
+          
+          // Only insert if the lead exists and we have a valid user mapping
+          if (mappedLeadId && mappedUserId) {
+            const interactionData = {
+              ...insertData,
+              leadId: mappedLeadId,
+              userId: mappedUserId
+            };
+            await db.insert(interactions).values(interactionData);
+          }
         }
       }
 
       if (data.data.leadAttachments?.length > 0) {
         for (const attachment of data.data.leadAttachments) {
           const { id, createdAt, updatedAt, ...insertData } = attachment as any;
-          await db.insert(leadAttachments).values(insertData);
+          
+          // Map leadId to new ID
+          const mappedLeadId = leadIdMap.get(attachment.leadId);
+          
+          // Only insert if the lead exists
+          if (mappedLeadId) {
+            const attachmentData = {
+              ...insertData,
+              leadId: mappedLeadId
+            };
+            await db.insert(leadAttachments).values(attachmentData);
+          }
         }
       }
 
       if (data.data.leadProducts?.length > 0) {
         for (const leadProduct of data.data.leadProducts) {
           const { id, createdAt, updatedAt, ...insertData } = leadProduct as any;
-          await db.insert(leadProducts).values(insertData);
+          
+          // Map leadId and productId to new IDs
+          const mappedLeadId = leadIdMap.get(leadProduct.leadId);
+          const mappedProductId = productIdMap.get(leadProduct.productId);
+          
+          // Only insert if both lead and product exist
+          if (mappedLeadId && mappedProductId) {
+            const leadProductData = {
+              ...insertData,
+              leadId: mappedLeadId,
+              productId: mappedProductId
+            };
+            await db.insert(leadProducts).values(leadProductData);
+          }
         }
       }
 
