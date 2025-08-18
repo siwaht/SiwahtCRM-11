@@ -649,30 +649,34 @@ export class DatabaseStorage implements IStorage {
       // First import independent tables
       if (data.data.users?.length > 0) {
         // Only import non-admin users to preserve existing admin accounts
-        const nonAdminUsers = data.data.users.filter(user => user.role !== 'admin');
+        const nonAdminUsers = data.data.users.filter((user: any) => user.role !== 'admin');
         for (const user of nonAdminUsers) {
-          const { id, createdAt, updatedAt, ...insertData } = user;
+          const { id, createdAt, updatedAt, ...insertData } = user as any;
           await db.insert(users).values(insertData);
         }
       }
 
       if (data.data.products?.length > 0) {
         for (const product of data.data.products) {
-          const { id, createdAt, ...insertData } = product;
+          const { id, createdAt, updatedAt, ...insertData } = product as any;
           await db.insert(products).values(insertData);
         }
       }
 
       if (data.data.webhooks?.length > 0) {
         for (const webhook of data.data.webhooks) {
-          const { id, createdAt, lastTriggered, ...insertData } = webhook;
-          await db.insert(webhooks).values(insertData);
+          const { id, createdAt, updatedAt, lastTriggered, ...insertData } = webhook as any;
+          const webhookData = {
+            ...insertData,
+            lastTriggered: webhook.lastTriggered ? new Date(webhook.lastTriggered) : null
+          };
+          await db.insert(webhooks).values(webhookData);
         }
       }
 
       if (data.data.mcpServers?.length > 0) {
         for (const server of data.data.mcpServers) {
-          const { id, createdAt, ...insertData } = server;
+          const { id, createdAt, updatedAt, ...insertData } = server as any;
           await db.insert(mcpServers).values(insertData);
         }
       }
@@ -680,28 +684,34 @@ export class DatabaseStorage implements IStorage {
       // Then import dependent tables
       if (data.data.leads?.length > 0) {
         for (const lead of data.data.leads) {
-          const { id, createdAt, ...insertData } = lead;
-          await db.insert(leads).values(insertData);
+          const { id, createdAt, updatedAt, ...insertData } = lead as any;
+          // Convert date strings back to Date objects if needed
+          const leadData = {
+            ...insertData,
+            followUpDate: lead.followUpDate ? new Date(lead.followUpDate) : null,
+            lastContactedAt: lead.lastContactedAt ? new Date(lead.lastContactedAt) : null
+          };
+          await db.insert(leads).values(leadData);
         }
       }
 
       if (data.data.interactions?.length > 0) {
         for (const interaction of data.data.interactions) {
-          const { id, createdAt, ...insertData } = interaction;
+          const { id, createdAt, updatedAt, ...insertData } = interaction as any;
           await db.insert(interactions).values(insertData);
         }
       }
 
       if (data.data.leadAttachments?.length > 0) {
         for (const attachment of data.data.leadAttachments) {
-          const { id, createdAt, ...insertData } = attachment;
+          const { id, createdAt, updatedAt, ...insertData } = attachment as any;
           await db.insert(leadAttachments).values(insertData);
         }
       }
 
       if (data.data.leadProducts?.length > 0) {
         for (const leadProduct of data.data.leadProducts) {
-          const { id, createdAt, ...insertData } = leadProduct;
+          const { id, createdAt, updatedAt, ...insertData } = leadProduct as any;
           await db.insert(leadProducts).values(insertData);
         }
       }
@@ -709,6 +719,7 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error('Database import failed:', error);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
       return false;
     }
   }
