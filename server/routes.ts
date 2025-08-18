@@ -204,6 +204,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/products/:id', requireRole('admin'), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
+      const success = await storage.deleteProduct(id);
+      if (!success) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+      
+      // Trigger webhooks
+      await triggerWebhooks('product.deleted', { id });
+      
+      res.status(204).send();
+    } catch (error) {
+      console.error('Delete product error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Product CSV Export (Admin only)
+  app.get('/api/products/export/csv', requireRole('admin'), async (req, res) => {
+    try {
+      const products = await storage.getAllProducts();
+      
+      // Convert products to CSV format
+      const csvData = products.map(product => ({
+        name: product.name,
+        price: product.price || '',
+        pitch: product.pitch || '',
+        talkingPoints: product.talkingPoints || '',
+        agentNotes: product.agentNotes || '',
+        priority: product.priority,
+        profitLevel: product.profitLevel,
+        tags: product.tags?.join(',') || '',
+        displayOrder: product.displayOrder,
+        isActive: product.isActive
+      }));
+      
+      const csv = Papa.unparse(csvData);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="products-export-${new Date().toISOString().split('T')[0]}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Product CSV export error:', error);
+      res.status(500).json({ message: 'Failed to export products' });
+    }
+  });
+
+  // Product CSV Import (Admin only)
+  app.post('/api/products/import/csv', requireRole('admin'), upload.single('csvFile'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No CSV file uploaded' });
+      }
+
+      const fileContent = fs.readFileSync(req.file.path, 'utf8');
+      
+      // Parse CSV
+      const parseResult = Papa.parse(fileContent, {
+        header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim()
+      });
+
+      if (parseResult.errors.length > 0) {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ 
+          message: 'CSV parsing failed', 
+          errors: parseResult.errors 
+        });
+      }
+
+      const importResults = {
+        successful: 0,
+        failed: 0,
+        errors: [] as string[]
+      };
+
+      // Process each row
+      for (let i = 0; i < parseResult.data.length; i++) {
+        const row = parseResult.data[i] as any;
+        
+        try {
+          // Validate required fields
+          if (!row.name || !row.name.trim()) {
+            importResults.failed++;
+            importResults.errors.push(`Row ${i + 2}: Name is required`);
+            continue;
+          }
+
+          const productData = {
+            name: row.name.trim(),
+            price: row.price?.trim() || null,
+            pitch: row.pitch?.trim() || null,
+            talkingPoints: row.talkingPoints?.trim() || null,
+            agentNotes: row.agentNotes?.trim() || null,
+            priority: (row.priority?.trim() || 'Medium') as any,
+            profitLevel: (row.profitLevel?.trim() || 'Standard') as any,
+            tags: row.tags ? row.tags.split(',').map((tag: string) => tag.trim()).filter((tag: string) => tag.length > 0) : [],
+            displayOrder: row.displayOrder ? parseInt(row.displayOrder) : 0,
+            isActive: row.isActive === 'false' ? false : true
+          };
+
+          // Create the product
+          await storage.createProduct(productData);
+          importResults.successful++;
+        } catch (error) {
+          importResults.failed++;
+          importResults.errors.push(`Row ${i + 2}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        }
+      }
+
+      // Clean up uploaded file
+      fs.unlinkSync(req.file.path);
+
+      res.json({
+        message: 'CSV import completed',
+        results: importResults
+      });
+    } catch (error) {
+      console.error('Product CSV import error:', error);
+      // Clean up uploaded file on error
+      if (req.file) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (cleanupError) {
+          console.error('Failed to cleanup uploaded file:', cleanupError);
+        }
+      }
+      res.status(500).json({ message: 'Failed to import CSV' });
+    }
+  });
+
+  app.delete('/api/products/:id', requireRole('admin'), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
       
       // Get product before deleting for webhook
       const product = await storage.getProduct(id);

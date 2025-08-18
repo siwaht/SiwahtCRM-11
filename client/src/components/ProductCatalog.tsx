@@ -22,7 +22,8 @@ import {
   Upload,
   FileText,
   X,
-  Eye
+  Eye,
+  Trash2
 } from "lucide-react";
 import ProductForm from "./ProductForm";
 import type { Product } from "@shared/schema";
@@ -81,6 +82,73 @@ export default function ProductCatalog() {
       });
     },
   });
+
+  const handleExportCSV = () => {
+    const csv = Papa.unparse(
+      products.map(product => ({
+        name: product.name,
+        price: product.price || '',
+        pitch: product.pitch || '',
+        talkingPoints: product.talkingPoints || '',
+        agentNotes: product.agentNotes || '',
+        priority: product.priority,
+        profitLevel: product.profitLevel,
+        tags: product.tags?.join(',') || '',
+        displayOrder: product.displayOrder,
+        isActive: product.isActive
+      }))
+    );
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `products-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+  };
+
+  const handleImportCSV = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('csvFile', file);
+
+    try {
+      const response = await fetch('/api/products/import/csv', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Success",
+          description: `Imported ${result.results.successful} products successfully`,
+        });
+        queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Import Failed",
+          description: result.message || "Failed to import products",
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to import CSV file",
+      });
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const duplicateMutation = useMutation({
     mutationFn: async (product: Product) => {
@@ -172,7 +240,7 @@ export default function ProductCatalog() {
   const isAdmin = ((user as any)?.user?.role || user?.role) === "admin";
 
   // Export products to CSV
-  const exportProducts = () => {
+  const exportProducts = async () => {
     if (products.length === 0) {
       toast({
         variant: "destructive",
@@ -182,46 +250,35 @@ export default function ProductCatalog() {
       return;
     }
 
-    const headers = [
-      "Name",
-      "Price", 
-      "Priority",
-      "Profit Level",
-      "Pitch",
-      "Talking Points",
-      "Agent Notes",
-      "Tags"
-    ];
+    try {
+      const response = await fetch('/api/products/export/csv', {
+        method: 'GET',
+        credentials: 'include',
+      });
 
-    const csvData = products.map((product: Product) => [
-      product.name,
-      product.price,
-      product.priority,
-      product.profitLevel,
-      product.pitch || "",
-      product.talkingPoints || "",
-      product.agentNotes || "",
-      (product.tags || []).join("; ")
-    ]);
+      if (!response.ok) {
+        throw new Error('Failed to export products');
+      }
 
-    const csvContent = [headers, ...csvData]
-      .map(row => row.map(field => `"${field}"`).join(","))
-      .join("\n");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `products-export-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
 
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    const url = URL.createObjectURL(blob);
-    link.setAttribute("href", url);
-    link.setAttribute("download", `products_export_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    toast({
-      title: "Success",
-      description: `Exported ${products.length} products to CSV`,
-    });
+      toast({
+        title: "Success",
+        description: `Exported ${products.length} products to CSV`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: "Failed to export products",
+      });
+    }
   };
 
   // Handle file import
@@ -238,97 +295,8 @@ export default function ProductCatalog() {
       return;
     }
 
-    try {
-      let text = await file.text();
-      
-      // Clean up common CSV formatting issues
-      text = text
-        .replace(/\r\n/g, '\n')  // Normalize line endings
-        .replace(/\r/g, '\n')    // Handle old Mac line endings
-        .trim();                 // Remove leading/trailing whitespace
-
-      // Use Papa Parse for proper CSV handling with error recovery
-      const csvData = Papa.parse(text, {
-        header: false,
-        skipEmptyLines: true,
-        transform: (value: string) => value.trim(),
-        quotes: true,
-        quoteChar: '"',
-        escapeChar: '"',
-        delimiter: ',',
-        newline: '',
-        skipFirstNLines: 0
-      });
-
-      // Only throw error for critical parsing issues, not warnings
-      const criticalErrors = csvData.errors.filter(error => 
-        error.type === 'Delimiter' || error.type === 'FieldMismatch'
-      );
-      
-      if (criticalErrors.length > 0) {
-        throw new Error(`CSV parsing error: ${criticalErrors[0].message}`);
-      }
-
-      const rows = csvData.data as string[][];
-      
-      if (rows.length < 2) {
-        throw new Error("File must contain headers and at least one data row");
-      }
-
-      const headers = rows[0];
-      
-      const products = rows.slice(1).map((values, index) => {
-        // Ensure we have enough values, pad with empty strings if needed
-        while (values.length < 8) {
-          values.push('');
-        }
-        
-        const productData: any = {
-          name: values[0] || "",
-          price: values[1] || "",
-          priority: ["High", "Medium", "Low"].includes(values[2]) ? values[2] : "Medium",
-          profitLevel: ["High Profit", "Standard", "Low Margin"].includes(values[3]) ? values[3] : "Standard",
-          pitch: values[4] || "",
-          talkingPoints: values[5] || "",
-          agentNotes: values[6] || "",
-          tags: values[7] ? values[7].split(';').map(t => t.trim()).filter(t => t) : []
-        };
-
-        // Better validation with more specific error messages
-        if (!productData.name || productData.name.trim() === '') {
-          throw new Error(`Row ${index + 2}: Product name is required (found: "${productData.name}")`);
-        }
-        if (!productData.price || productData.price.trim() === '') {
-          throw new Error(`Row ${index + 2}: Product price is required (found: "${productData.price}"). Values in row: [${values.map(v => `"${v}"`).join(', ')}]`);
-        }
-
-        return productData;
-      });
-
-      // Import products one by one
-      for (const productData of products) {
-        await apiRequest("POST", "/api/products", productData);
-      }
-
-      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
-      toast({
-        title: "Success",
-        description: `Imported ${products.length} products successfully`,
-      });
-
-    } catch (error) {
-      console.error("Import error:", error);
-      toast({
-        variant: "destructive",
-        title: "Import Failed",
-        description: error instanceof Error ? error.message : "Failed to import products",
-      });
-    }
-
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    // Use the handleImportCSV function defined earlier
+    await handleImportCSV(event);
   };
 
   if (isLoading) {
@@ -512,6 +480,18 @@ export default function ProductCatalog() {
                         data-testid={`button-copy-${product.id}`}
                       >
                         <Copy className="h-4 w-4 text-slate-400" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(product.id);
+                        }}
+                        className="p-2 hover:bg-red-900/50 rounded-lg"
+                        data-testid={`button-delete-${product.id}`}
+                      >
+                        <Trash2 className="h-4 w-4 text-red-400" />
                       </Button>
                     </div>
                     <div className="flex items-center space-x-1">
