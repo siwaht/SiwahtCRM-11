@@ -711,8 +711,8 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
             </CardContent>
           </Card>
 
-          {/* File Attachments - Admin Only */}
-          {currentUser?.user?.role === 'admin' && (
+          {/* File Attachments - Available to all users */}
+          {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Paperclip className="h-4 w-4 text-slate-400" />
@@ -882,7 +882,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                 </div>
               </div>
             </div>
-          )}
+          }
         </div>
 
         {/* Add Interaction Modal */}
