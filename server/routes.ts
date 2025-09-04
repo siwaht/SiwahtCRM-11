@@ -950,12 +950,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'No file uploaded' });
       }
 
-      const attachment = await storage.createLeadAttachment({
+      await storage.addLeadAttachment({
         leadId,
         fileName: req.file.originalname,
         filePath: req.file.path,
+        fileSize: req.file.size,
+        description: req.body.description || null,
         uploadedById: req.user!.id
       });
+
+      const attachment = {
+        leadId,
+        fileName: req.file.originalname,
+        filePath: req.file.path,
+        fileSize: req.file.size,
+        description: req.body.description || null,
+        uploadedById: req.user!.id
+      };
+
+      // Update user's storage usage
+      const user = await storage.getUser(req.user!.id);
+      if (user) {
+        const newStorageUsed = (user.storageUsed || 0) + req.file.size;
+        await storage.updateUserStorage(req.user!.id, newStorageUsed);
+      }
 
       res.status(201).json(attachment);
     } catch (error) {

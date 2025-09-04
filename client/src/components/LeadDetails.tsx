@@ -811,31 +811,24 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                       
                       try {
                         for (const file of files) {
-                          // Get upload URL
-                          const response = await apiRequest("POST", "/api/objects/upload");
-                          const data = await response.json();
-                          
-                          // Upload file directly to storage
-                          const uploadResponse = await fetch(data.uploadURL || data.url, {
-                            method: 'PUT',
-                            body: file,
-                            headers: {
-                              'Content-Type': file.type || 'application/octet-stream'
-                            }
-                          });
-                          
-                          if (!uploadResponse.ok) {
-                            throw new Error(`Failed to upload ${file.name}`);
+                          // Create FormData for file upload
+                          const formData = new FormData();
+                          formData.append('file', file);
+                          if (currentDescription) {
+                            formData.append('description', currentDescription);
                           }
                           
-                          // Save file metadata
-                          await apiRequest("PUT", "/api/lead-attachments", {
-                            fileURL: data.uploadURL || data.url,
-                            leadId: lead.id,
-                            fileName: file.name,
-                            fileSize: file.size,
-                            description: currentDescription || null
+                          // Upload file directly using multer endpoint
+                          const response = await fetch(`/api/leads/${lead.id}/attachments`, {
+                            method: 'POST',
+                            body: formData,
+                            credentials: 'include' // Important for session cookies
                           });
+                          
+                          if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            throw new Error(errorData.message || `Failed to upload ${file.name}`);
+                          }
                         }
                         
                         // Refresh data
