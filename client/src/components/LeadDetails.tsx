@@ -754,7 +754,7 @@ export default function LeadDetails({ lead, onClose }: LeadDetailsProps) {
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0 ml-2">
                             <button
-                              onClick={() => window.open(attachment.filePath, '_blank')}
+                              onClick={() => window.open(`/api/attachments/${attachment.id}/download`, '_blank')}
                               className="text-blue-400 hover:text-blue-300 text-xs px-1.5 py-0.5 rounded hover:bg-blue-500/10"
                               data-testid={`link-view-attachment-${attachment.id}`}
                             >

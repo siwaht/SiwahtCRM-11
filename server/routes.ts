@@ -15,6 +15,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import Papa from 'papaparse';
+import express from 'express';
 
 // Setup multer for file uploads
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -30,6 +31,9 @@ const upload = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Serve static files from uploads directory
+  app.use('/uploads', express.static(uploadsDir));
+  
   // Setup PostgreSQL session store
   const PostgreSqlStore = connectPgSimple(session);
   
@@ -998,6 +1002,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(attachments);
     } catch (error) {
       console.error('Get attachments error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Add download endpoint for attachments with proper permission checks
+  app.get('/api/attachments/:id/download', requireAuth, async (req, res) => {
+    try {
+      const attachmentId = parseInt(req.params.id);
+      const attachment = await storage.getLeadAttachment(attachmentId);
+      
+      if (!attachment) {
+        return res.status(404).json({ message: 'Attachment not found' });
+      }
+
+      // Permission check: agents can only download attachments for leads they created
+      if (req.user!.role === 'agent') {
+        const lead = await storage.getLead(attachment.leadId);
+        if (!lead || lead.assignedTo !== req.user!.id) {
+          return res.status(403).json({ message: 'Access denied' });
+        }
+      }
+      // Engineers and admins can download any attachment
+
+      // Check if file exists
+      if (!fs.existsSync(attachment.filePath)) {
+        return res.status(404).json({ message: 'File not found' });
+      }
+
+      // Set proper headers for file download
+      res.setHeader('Content-Disposition', `attachment; filename="${attachment.fileName}"`);
+      res.setHeader('Content-Type', 'application/octet-stream');
+      
+      // Send the file
+      res.sendFile(path.resolve(attachment.filePath));
+    } catch (error) {
+      console.error('Download attachment error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
