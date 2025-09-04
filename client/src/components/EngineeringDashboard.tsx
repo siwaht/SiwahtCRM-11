@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   Settings,
   CheckCircle,
@@ -29,9 +29,11 @@ import {
   Mail,
   Phone,
   AlertTriangle,
-  Save
+  Save,
+  FileText,
+  X
 } from "lucide-react";
-import type { Lead } from "@shared/schema";
+import type { Lead, LeadAttachment } from "@shared/schema";
 
 export default function EngineeringDashboard() {
   const [selectedProject, setSelectedProject] = useState<Lead | null>(null);
@@ -39,12 +41,19 @@ export default function EngineeringDashboard() {
   const [sortBy, setSortBy] = useState("Priority");
   const [progressUpdate, setProgressUpdate] = useState<number>(0);
   const [technicalNotes, setTechnicalNotes] = useState("");
+  const [fileDescription, setFileDescription] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const { data: leads = [], isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
+  });
+
+  // Fetch attachments for selected project
+  const { data: attachments = [], isLoading: attachmentsLoading } = useQuery<LeadAttachment[]>({
+    queryKey: [`/api/leads/${selectedProject?.id}/attachments`],
+    enabled: !!selectedProject?.id,
   });
 
   // Get the actual user ID (handle nested user object)
@@ -120,6 +129,29 @@ export default function EngineeringDashboard() {
       setSelectedProject({ ...selectedProject, engineeringNotes: technicalNotes });
     }
   };
+
+  // Delete attachment mutation
+  const deleteAttachmentMutation = useMutation({
+    mutationFn: async (attachmentId: number) => {
+      const response = await apiRequest("DELETE", `/api/lead-attachments/${attachmentId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/leads/${selectedProject?.id}/attachments`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+      toast({
+        title: "Success",
+        description: "File deleted successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete file",
+      });
+    },
+  });
 
   const handleProjectSelect = (project: Lead) => {
     setSelectedProject(project);
@@ -482,20 +514,143 @@ export default function EngineeringDashboard() {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Paperclip className="h-4 w-4 text-slate-400" />
-                      <h4 className="font-medium text-white">Project Files (0)</h4>
+                      <h4 className="font-medium text-white">Project Files ({attachments.length})</h4>
                     </div>
-                    <Button
-                      size="sm"
-                      className="bg-slate-700 hover:bg-slate-600 text-white"
-                      data-testid="button-upload"
+                    <label
+                      htmlFor="eng-file-upload"
+                      className="inline-flex items-center px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-white rounded cursor-pointer transition-colors"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Upload
-                    </Button>
+                    </label>
+                    <input
+                      type="file"
+                      id="eng-file-upload"
+                      multiple
+                      accept="*/*"
+                      className="hidden"
+                      disabled={isUploading}
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files || []);
+                        if (files.length === 0 || !selectedProject) return;
+                        
+                        setIsUploading(true);
+                        const currentDescription = fileDescription.trim();
+                        
+                        toast({
+                          title: "Uploading",
+                          description: `Uploading ${files.length} file(s)...`,
+                        });
+                        
+                        try {
+                          for (const file of files) {
+                            const formData = new FormData();
+                            formData.append('file', file);
+                            if (currentDescription) {
+                              formData.append('description', currentDescription);
+                            }
+                            
+                            const response = await fetch(`/api/leads/${selectedProject.id}/attachments`, {
+                              method: 'POST',
+                              body: formData,
+                              credentials: 'include'
+                            });
+                            
+                            if (!response.ok) {
+                              const errorData = await response.json().catch(() => ({}));
+                              throw new Error(errorData.message || `Failed to upload ${file.name}`);
+                            }
+                          }
+                          
+                          queryClient.invalidateQueries({ queryKey: [`/api/leads/${selectedProject.id}/attachments`] });
+                          queryClient.invalidateQueries({ queryKey: ["/api/user/storage"] });
+                          
+                          setFileDescription("");
+                          e.target.value = '';
+                          
+                          toast({
+                            title: "Success",
+                            description: `${files.length} file(s) uploaded successfully`,
+                          });
+                          
+                        } catch (error) {
+                          console.error('Upload error:', error);
+                          toast({
+                            variant: "destructive",
+                            title: "Upload Failed",
+                            description: error instanceof Error ? error.message : "Failed to upload files",
+                          });
+                          e.target.value = '';
+                        } finally {
+                          setIsUploading(false);
+                        }
+                      }}
+                    />
                   </div>
-                  <p className="text-sm text-slate-400 text-center py-4">
-                    No files attached. Upload technical documents, specifications, or implementation files.
-                  </p>
+
+                  {/* File Description Input */}
+                  {attachments.length === 0 && (
+                    <Input
+                      value={fileDescription}
+                      onChange={(e) => setFileDescription(e.target.value)}
+                      placeholder="Optional description for uploaded files..."
+                      className="bg-slate-700/30 border-slate-600 text-slate-300 mb-3"
+                      disabled={isUploading}
+                    />
+                  )}
+
+                  {/* Attachments List */}
+                  {attachmentsLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-500"></div>
+                    </div>
+                  ) : attachments.length > 0 ? (
+                    <div className="space-y-2">
+                      {attachments.map((attachment: LeadAttachment) => (
+                        <div key={attachment.id} className="flex items-center justify-between p-2 bg-slate-700/30 rounded">
+                          <div className="flex items-center gap-2 flex-1">
+                            <FileText className="h-4 w-4 text-slate-400 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-slate-200 truncate">{attachment.fileName}</p>
+                              {attachment.description && (
+                                <p className="text-xs text-slate-400 truncate">{attachment.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => window.open(`/api/attachments/${attachment.id}/download`, '_blank')}
+                              className="text-blue-400 hover:text-blue-300 p-1"
+                            >
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => deleteAttachmentMutation.mutate(attachment.id)}
+                              disabled={deleteAttachmentMutation.isPending}
+                              className="text-red-400 hover:text-red-300 p-1"
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                      <Input
+                        value={fileDescription}
+                        onChange={(e) => setFileDescription(e.target.value)}
+                        placeholder="Optional description for new files..."
+                        className="bg-slate-700/30 border-slate-600 text-slate-300 mt-2"
+                        disabled={isUploading}
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-400 text-center py-4">
+                      No files attached. Upload technical documents, specifications, or implementation files.
+                    </p>
+                  )}
                 </CardContent>
               </Card>
 
