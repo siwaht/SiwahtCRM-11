@@ -73,7 +73,11 @@ The system is designed for extensibility with external services:
   - Assignment options endpoint providing available agents and engineers
   - Webhook notifications for all assignment events
 - **MCP Protocol**: WebSocket-based AI agent integration for automated lead processing
-- **File Storage**: Local file system with plans for cloud storage integration
+- **Platform-Agnostic Object Storage**: Universal storage abstraction supporting multiple cloud providers
+  - AWS S3, Azure Blob Storage, Google Cloud Storage, and local filesystem
+  - Provider selection via environment variable (STORAGE_PROVIDER)
+  - Consistent API across all providers with automatic adapter selection
+  - Support for signed URLs, ACL policies, and metadata management
 - **Database**: PostgreSQL via Neon serverless with connection pooling
 
 ## External Dependencies
@@ -98,9 +102,84 @@ The system is designed for extensibility with external services:
 - **Package Management**: npm with lock file for consistent installs
 
 ### Third-Party Services
-- **Cloud Storage**: Google Cloud Storage (@google-cloud/storage) for file management
+- **Cloud Storage**: Platform-agnostic storage abstraction supporting:
+  - AWS S3 (@aws-sdk/client-s3, @aws-sdk/s3-request-presigner)
+  - Azure Blob Storage (@azure/storage-blob)
+  - Google Cloud Storage (@google-cloud/storage)
+  - Local filesystem for development
 - **Real-time Communication**: WebSocket server for AI agent integration
 - **Data Processing**: Support for Excel (xlsx) and CSV (papaparse) imports
 - **Analytics**: Chart.js and Recharts for data visualization
 
 The architecture prioritizes type safety, scalability, and maintainability while providing a comprehensive CRM solution tailored for AI service sales teams.
+
+## Platform-Agnostic Deployment
+
+The CRM system is designed to run on any cloud platform (AWS, Azure, Google Cloud, or on-premises) through a universal storage abstraction layer.
+
+### Storage Provider Configuration
+
+Set the `STORAGE_PROVIDER` environment variable to select your storage backend:
+
+#### Local Filesystem (Development)
+```bash
+STORAGE_PROVIDER=local
+LOCAL_STORAGE_PATH=./storage
+BASE_URL=http://localhost:5000
+PUBLIC_OBJECT_SEARCH_PATHS=/bucket-name/public
+PRIVATE_OBJECT_DIR=/bucket-name/private
+```
+
+#### AWS S3
+```bash
+STORAGE_PROVIDER=s3
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+PUBLIC_OBJECT_SEARCH_PATHS=/bucket-name/public
+PRIVATE_OBJECT_DIR=/bucket-name/private
+```
+
+#### Azure Blob Storage
+```bash
+STORAGE_PROVIDER=azure
+AZURE_STORAGE_CONNECTION_STRING=your_connection_string
+# OR
+AZURE_STORAGE_ACCOUNT_NAME=your_account
+AZURE_STORAGE_ACCOUNT_KEY=your_key
+PUBLIC_OBJECT_SEARCH_PATHS=/container-name/public
+PRIVATE_OBJECT_DIR=/container-name/private
+```
+
+#### Google Cloud Storage
+```bash
+STORAGE_PROVIDER=gcs
+# Option 1: Replit environment (automatic)
+USE_REPLIT_OBJECT_STORAGE=true
+
+# Option 2: Custom GCP credentials
+GCP_PROJECT_ID=your_project_id
+GCP_KEY_FILENAME=/path/to/service-account.json
+PUBLIC_OBJECT_SEARCH_PATHS=/bucket-name/public
+PRIVATE_OBJECT_DIR=/bucket-name/private
+```
+
+### Storage Provider Features
+
+All storage providers support:
+- **File Upload/Download**: Streaming file operations with progress tracking
+- **Signed URLs**: Temporary, secure URLs for direct client uploads
+- **ACL Policies**: Fine-grained access control with public/private visibility
+- **Metadata Management**: Custom metadata storage for files
+- **Path Normalization**: Consistent path handling across providers
+
+### Switching Providers
+
+To deploy the same codebase to a different platform:
+
+1. Update the `STORAGE_PROVIDER` environment variable
+2. Configure the provider-specific credentials
+3. Update bucket/container names in `PUBLIC_OBJECT_SEARCH_PATHS` and `PRIVATE_OBJECT_DIR`
+4. Restart the application
+
+No code changes are required - the storage adapter is selected automatically based on configuration.
