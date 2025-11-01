@@ -38,19 +38,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const PostgreSqlStore = connectPgSimple(session);
   
   // Session middleware with PostgreSQL store
+  if (!process.env.SESSION_SECRET) {
+    console.warn('WARNING: SESSION_SECRET environment variable is not set. Using a default value for development only.');
+    console.warn('NEVER deploy to production without setting a secure SESSION_SECRET!');
+  }
+
   app.use(session({
     store: new PostgreSqlStore({
       pool: pool as any,
       tableName: 'session',
       createTableIfMissing: true,
     }),
-    secret: process.env.SESSION_SECRET || 'your-secret-key-dev-12345',
+    secret: process.env.SESSION_SECRET || 'dev-secret-change-in-production',
     resave: false,
     saveUninitialized: false,
     name: 'siwaht.sid',
     cookie: {
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === 'production',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax',
       path: '/'
@@ -202,24 +207,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Update product error:', error);
       res.status(400).json({ message: 'Invalid product data' });
-    }
-  });
-
-  app.delete('/api/products/:id', requireRole('admin'), async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteProduct(id);
-      if (!success) {
-        return res.status(404).json({ message: 'Product not found' });
-      }
-      
-      // Trigger webhooks
-      await triggerWebhooks('product.deleted', { id });
-      
-      res.status(204).send();
-    } catch (error) {
-      console.error('Delete product error:', error);
-      res.status(500).json({ message: 'Internal server error' });
     }
   });
 
@@ -746,10 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/leads/:id/interactions', requireAuth, async (req, res) => {
     try {
       const leadId = parseInt(req.params.id);
-      console.log('Creating interaction for lead:', leadId);
-      console.log('Request body:', req.body);
-      console.log('User ID from session:', req.session.userId);
-      
+
       if (!req.session.userId) {
         return res.status(401).json({ message: 'User not authenticated' });
       }
@@ -761,15 +745,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           return res.status(403).json({ message: 'Access denied' });
         }
       }
-      
+
       const interactionData = insertInteractionSchema.parse({
         ...req.body,
         leadId,
         userId: req.session.userId
       });
-      
-      console.log('Parsed interaction data:', interactionData);
-      
+
       const interaction = await storage.createInteraction(interactionData);
       
       // Get lead and agent information for enhanced webhook payload
@@ -1389,15 +1371,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Object Storage Routes
   // Endpoint for getting the upload URL for file uploads
   app.post('/api/objects/upload', requireAuth, async (req, res) => {
-    console.log('Upload URL request from user:', req.session.userId);
     try {
       const objectStorageService = new ObjectStorageService();
       const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-      console.log('Generated upload URL successfully');
-      res.json({ 
+      res.json({
         method: 'PUT',
         url: uploadURL,
-        uploadURL: uploadURL 
+        uploadURL: uploadURL
       });
     } catch (error) {
       console.error('Error getting upload URL:', error);
@@ -1433,7 +1413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user storage usage
-  app.get('/api/user/storage', async (req, res) => {
+  app.get('/api/user/storage', requireAuth, async (req, res) => {
     try {
       // Get current user from session
       if (!req.session.userId) {
@@ -1457,7 +1437,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Endpoint for updating file metadata after upload
-  app.put('/api/lead-attachments', async (req, res) => {
+  app.put('/api/lead-attachments', requireAuth, async (req, res) => {
     if (!req.body.fileURL || !req.body.leadId || !req.body.fileSize) {
       return res.status(400).json({ error: 'fileURL, leadId, and fileSize are required' });
     }

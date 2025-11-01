@@ -37,9 +37,7 @@ export async function triggerWebhooks(event: string, data: any, specificWebhooks
           data,
           timestamp: new Date().toISOString(),
         };
-        
-        console.log(`Sending webhook ${webhook.name} with payload:`, JSON.stringify(webhookBody, null, 2));
-        
+
         const response = await fetch(webhook.url, {
           method: 'POST',
           headers,
@@ -49,7 +47,6 @@ export async function triggerWebhooks(event: string, data: any, specificWebhooks
         if (!response.ok) {
           console.error(`Webhook ${webhook.name} failed: ${response.status} ${response.statusText}`);
         } else {
-          console.log(`Webhook ${webhook.name} triggered successfully`);
           // Update last triggered timestamp
           await storage.updateWebhook(webhook.id, { lastTriggered: new Date() } as any);
         }
